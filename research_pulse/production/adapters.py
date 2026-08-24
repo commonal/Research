@@ -505,7 +505,15 @@ def _slug(value: str) -> str:
 
 @dataclass(frozen=True)
 class DeepSeekDeepReader:
-    """Thinking-enabled interpretation; its output never becomes source evidence."""
+    """DEPRECATED — superseded by the PaperReader reading route.
+
+    This DeepReadingAnalysis deep-reader and the DeepSeekStructuredExtractor that
+    wraps it are being retired.  The production reading mode is now
+    ``research_pulse.reader_production`` (PaperReader, via ``--reader-root``),
+    which resolves server-normalized blocks and carries the note as the knowledge.
+    This class remains only for the transition; it will be removed with the rest
+    of the DeepReadingAnalysis machinery.
+    """
 
     model: str
     api_key: str
@@ -692,7 +700,13 @@ class DeepSeekDeepReader:
 
 @dataclass(frozen=True)
 class DeepSeekStructuredExtractor:
-    """Create a bounded draft; publication still requires an independent judge."""
+    """DEPRECATED — superseded by the PaperReader reading route.
+
+    Use ``research_pulse.reader_production.ReaderExtractor`` (or
+    ``--reader-root``) instead.  This extractor wraps the retired
+    ``DeepSeekDeepReader``/DeepReadingAnalysis and is kept only for the
+    transition; it will be removed with the rest of that machinery.
+    """
 
     model: str
     api_key: str
