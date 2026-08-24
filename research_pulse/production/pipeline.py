@@ -40,94 +40,12 @@ class SourceMaterial:
 
 
 @dataclass(frozen=True)
-class EvidenceMap:
-    """Transient compressed map used to give the deep reader broad coverage."""
-
-    summaries: tuple[tuple[str, str], ...] = ()
-
-
-@dataclass(frozen=True)
-class ReadingVisual:
-    """A selected source object that helps a human understand the narrative."""
-
-    block_id: str
-    role: str
-    explanation: str
-    title: str = ""
-
-    def __post_init__(self) -> None:
-        if not self.block_id.strip() or not self.role.strip() or not self.explanation.strip():
-            raise ValueError("A reading visual needs a block ID, role, and explanation.")
-        if len(self.explanation) > 1_500:
-            raise ValueError("A reading visual explanation is too long.")
-
-
-@dataclass(frozen=True)
-class GroundedReadingSection:
-    """One narrative section with only server-accepted transient block IDs."""
-
-    text: str
-    evidence_block_ids: tuple[str, ...] = ()
-    visuals: tuple[ReadingVisual, ...] = ()
-
-    def __post_init__(self) -> None:
-        if not isinstance(self.text, str):
-            raise ValueError("A grounded reading section requires text.")
-        if len(self.evidence_block_ids) != len(set(self.evidence_block_ids)):
-            raise ValueError("Grounded reading evidence block IDs must be unique.")
-        visual_ids = tuple(visual.block_id for visual in self.visuals)
-        if len(visual_ids) != len(set(visual_ids)):
-            raise ValueError("Grounded reading visual block IDs must be unique.")
-        if not self.text.strip() and self.evidence_block_ids:
-            raise ValueError("An empty reading section cannot retain evidence block IDs.")
-        if not self.text.strip() and self.visuals:
-            raise ValueError("An empty reading section cannot retain visual objects.")
-
-
-@dataclass(frozen=True)
-class DeepReadingAnalysis:
-    """Transient narrative whose sections retain independent evidence choices."""
-
-    summary: GroundedReadingSection
-    problem: GroundedReadingSection
-    method: GroundedReadingSection
-    experiments: GroundedReadingSection
-    limitations: GroundedReadingSection
-    reproduction: GroundedReadingSection
-    research_question: GroundedReadingSection = field(default_factory=lambda: GroundedReadingSection(""))
-    core_idea: GroundedReadingSection = field(default_factory=lambda: GroundedReadingSection(""))
-    workflow: GroundedReadingSection = field(default_factory=lambda: GroundedReadingSection(""))
-    experiment_design: GroundedReadingSection = field(default_factory=lambda: GroundedReadingSection(""))
-    result_interpretation: GroundedReadingSection = field(default_factory=lambda: GroundedReadingSection(""))
-    reading_boundary: str = ""
-
-    def sections(self) -> Mapping[str, GroundedReadingSection]:
-        return {
-            name: getattr(self, name)
-            for name in (
-                "summary",
-                "problem",
-                "research_question",
-                "core_idea",
-                "method",
-                "workflow",
-                "experiments",
-                "experiment_design",
-                "result_interpretation",
-                "limitations",
-                "reproduction",
-            )
-        }
-
-
-@dataclass(frozen=True)
 class ExtractedDraft:
     """A model-proposed note before publication status is granted."""
 
     asset: KnowledgeAsset
     claims: tuple[KnowledgeClaim, ...]
     claim_facets: Mapping[str, EvidenceFacet] = field(default_factory=dict)
-    reading_analysis: DeepReadingAnalysis | None = None
     visual_assets: Mapping[str, Path] = field(default_factory=dict)
 
 
@@ -198,7 +116,6 @@ class ProductionService:
                     anchors=material.anchors,
                     source_fragments=material.source_fragments,
                     evidence_blocks=material.evidence_blocks or None,
-                    reading_analysis=draft.reading_analysis,
                     visual_assets=draft.visual_assets,
                     entailment_judge=self.entailment_judge,
                 )
