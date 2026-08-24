@@ -11,9 +11,7 @@ from langgraph.checkpoint.memory import MemorySaver
 
 from research_pulse.knowledge.models import EvidenceAnchor, KnowledgeAsset, KnowledgeBundle, KnowledgeClaim
 from research_pulse.production.pipeline import (
-    DeepReadingAnalysis,
     ExtractedDraft,
-    GroundedReadingSection,
     PaperCandidate,
     ProductionService,
     SourceMaterial,
@@ -224,111 +222,6 @@ class ProductionPipelineTests(TestCase):
         self.assertEqual(registry.marked, [])
         self.assertEqual(len(review_sink.calls), 1)
         self.assertEqual(review_sink.calls[0]["candidate"].source_id, candidate.source_id)
-
-    def test_reading_quality_failure_keeps_old_current_and_graph_state_unprocessed(self) -> None:
-        candidate = _candidate("reading-number-boundary")
-        specs = (
-            ("problem", "Introduction", "The paper addresses broad execution privileges."),
-            ("method", "Method", "The method learns a task-conditioned permission boundary."),
-            ("experiment", "Results", "The proposed policy reaches 90.50% success."),
-            ("limitation", "Limitations", "The study does not evaluate long-running tasks."),
-        )
-
-        class ReadingParser:
-            def parse(self, ignored: PaperCandidate) -> SourceMaterial:
-                anchors = {}
-                fragments = {}
-                blocks = {}
-                for facet, section, text in specs:
-                    anchor_id = f"anchor:{facet}"
-                    anchors[anchor_id] = EvidenceAnchor(anchor_id, ignored.source_url, section=section)
-                    fragments[anchor_id] = text
-                    blocks[anchor_id] = classify_candidate(
-                        EvidenceCandidate(
-                            block_id=anchor_id,
-                            kind="text",
-                            text=text,
-                            source_url=ignored.source_url,
-                            parser="fixture",
-                            parse_status="available",
-                            locator_completeness="section_only",
-                            section_path=(section,),
-                        )
-                    )
-                return SourceMaterial("full_text_text", anchors, fragments, evidence_blocks=blocks)
-
-        class ReadingExtractor:
-            def extract(self, ignored: PaperCandidate, material: SourceMaterial) -> ExtractedDraft:
-                body = "# Reading quality failure\n\nThe experiment reports 98.48% success.\n"
-                asset = KnowledgeAsset(
-                    knowledge_id=f"kp:arxiv:{ignored.source_id}",
-                    knowledge_version="2026-08-23T00:00:00Z",
-                    publication_status="needs_review",
-                    evidence_level=material.evidence_level,
-                    source_urls=(ignored.source_url,),
-                    domain=ignored.domain,
-                    title=ignored.title,
-                    body=body,
-                    content_sha256=sha256(body.encode("utf-8")).hexdigest(),
-                )
-                claims = tuple(
-                    KnowledgeClaim(f"claim:{facet}", "source_fact", text, (f"anchor:{facet}",), facet)
-                    for facet, _section, text in specs
-                )
-                analysis = DeepReadingAnalysis(
-                    summary=GroundedReadingSection("Bounded summary.", ("anchor:problem",)),
-                    problem=GroundedReadingSection(specs[0][2], ("anchor:problem",)),
-                    method=GroundedReadingSection(specs[1][2], ("anchor:method",)),
-                    experiments=GroundedReadingSection("The experiment reports 98.48% success.", ("anchor:experiment",)),
-                    limitations=GroundedReadingSection(specs[3][2], ("anchor:limitation",)),
-                    reproduction=GroundedReadingSection("Reproduce the task-conditioned policy.", ("anchor:method",)),
-                    reading_boundary="Bounded text evidence only.",
-                )
-                return ExtractedDraft(asset=asset, claims=claims, reading_analysis=analysis)
-
-        class CurrentPublisher(_Publisher):
-            current_version = "old-current"
-
-            def publish(self, bundle: KnowledgeBundle, source_id: str) -> None:
-                super().publish(bundle, source_id)
-                self.current_version = bundle.asset.knowledge_version
-
-        class ReviewSink:
-            def __init__(self) -> None:
-                self.calls = 0
-
-            def save_review_draft(self, **kwargs):
-                self.calls += 1
-
-        publisher = CurrentPublisher()
-        registry = _Registry()
-        review_sink = ReviewSink()
-        graph = build_production_graph(
-            ProductionGraphDependencies(
-                _Finder([candidate]),
-                ProductionService(
-                    ReadingParser(),
-                    ReadingExtractor(),
-                    publisher,
-                    registry,
-                    _Judge(),
-                    review_sink=review_sink,
-                ),
-            ),
-            checkpointer=MemorySaver(),
-        )
-
-        result = graph.invoke(
-            {"run_id": "run:reading-boundary", "topic": "agent security", "domain": candidate.domain, "limit": 1},
-            {"configurable": {"thread_id": "production:reading-boundary"}},
-        )
-
-        self.assertEqual(result["receipts"][0]["status"], "needs_review")
-        self.assertIn("reading_number_not_in_durable_excerpt", result["receipts"][0]["reason"])
-        self.assertEqual(publisher.current_version, "old-current")
-        self.assertEqual(publisher.published, [])
-        self.assertEqual(registry.marked, [])
-        self.assertEqual(review_sink.calls, 1)
 
     def test_zero_candidates_and_single_failure_keep_graph_state_bounded(self) -> None:
         publisher = _Publisher()

@@ -548,6 +548,25 @@ Evidence fragments:
     }
 
 
+def _decode_json_object(content: str) -> object:
+    """Decode JSON while tolerating a model-added Markdown fence or preamble."""
+
+    candidate = content.strip()
+    if candidate.startswith("```"):
+        first_newline = candidate.find("\n")
+        candidate = candidate[first_newline + 1 :] if first_newline >= 0 else ""
+        if candidate.rstrip().endswith("```"):
+            candidate = candidate.rstrip()[:-3]
+    start = candidate.find("{")
+    if start < 0:
+        raise RuntimeError("DeepSeek did not return a valid JSON draft.")
+    try:
+        payload, _ = json.JSONDecoder().raw_decode(candidate[start:])
+    except json.JSONDecodeError as error:
+        raise RuntimeError("DeepSeek did not return a valid JSON draft.") from error
+    return payload
+
+
 def _response_json(response: dict[str, Any]) -> dict[str, Any]:
     try:
         choice = response["choices"][0]

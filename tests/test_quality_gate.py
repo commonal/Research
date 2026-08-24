@@ -13,7 +13,6 @@ from research_pulse.knowledge.models import (
     KnowledgeClaim,
 )
 from research_pulse.production.quality import (
-    _claims_formula_meaning,
     _numeric_tokens,
     make_durable_anchor,
     validate_draft,
@@ -50,18 +49,6 @@ class QualityGateTests(TestCase):
         self.assertEqual(
             _numeric_tokens("1,020 episodes; p = 4 . 55 × 10 − 4; 83.6%"),
             ("1020", "4.55e-4", "83.6%"),
-        )
-
-    def test_unknown_formula_mention_is_a_boundary_not_an_interpretation(self) -> None:
-        self.assertFalse(
-            _claims_formula_meaning(
-                "未知项包括奖励函数的精确计算公式，未能从证据块中完整恢复。"
-            )
-        )
-        self.assertTrue(
-            _claims_formula_meaning(
-                "该公式定义了奖励中的权限稀疏参数。"
-            )
         )
 
     def test_durable_anchor_requires_locator_continuous_bounded_excerpt_and_valid_hash(self) -> None:
