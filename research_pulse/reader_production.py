@@ -20,6 +20,7 @@ from dataclasses import dataclass, replace
 from hashlib import sha256
 from pathlib import Path
 from typing import Any
+import re
 
 from research_pulse.knowledge.models import KnowledgeAsset
 from research_pulse.production.normalized import load_normalized_jsonl
@@ -157,3 +158,53 @@ class ReaderExtractor:
             schema_version=1,
         )
         return ExtractedDraft(asset=asset, claims=())
+
+
+@dataclass(frozen=True)
+class ReaderVaultConfig:
+    vault_root: Path
+
+
+def _safe_version(value: str) -> str:
+    return re.sub(r"[^A-Za-z0-9._-]", "-", value)
+
+
+class ReaderNotePublisher:
+    """Note-only publish path (option A1): write the schema-v1 markdown directly.
+
+    Does NOT build a KnowledgeBundle/claims/anchors provenance.  The note is the
+    knowledge; the retrieval/claims layer adapts later.  Mirrors the existing
+    ``knowledge/papers/<source_id>/<version>.md`` location so downstream readers
+    can find it the same way.
+    """
+
+    def __init__(self, vault_root: Path) -> None:
+        self.vault_root = vault_root
+
+    def publish(self, candidate: PaperCandidate, note: str, receipt: Any) -> Path:
+        markdown = ReaderProduction.note_asset_markdown(note, candidate, receipt)
+        version = getattr(receipt, "completed_at", None) or getattr(receipt, "started_at", None) or "manual"
+        directory = self.vault_root / "papers" / candidate.source_id
+        directory.mkdir(parents=True, exist_ok=True)
+        path = directory / f"{_safe_version(version)}.md"
+        path.write_text(markdown, encoding="utf-8")
+        return path
+
+
+class ReaderProductionService:
+    """Reading route as a drop-in production entry: resolve -> read -> publish."""
+
+    def __init__(self, config: ReaderConfig, vault_root: Path, model: Any | None = None) -> None:
+        self.reader = ReaderProduction(config, model)
+        self.publisher = ReaderNotePublisher(vault_root)
+
+    def process(self, candidate: PaperCandidate) -> dict[str, Any]:
+        result = self.reader.read(candidate)
+        path = self.publisher.publish(candidate, result.draft.markdown, result.receipt)
+        return {
+            "source_id": candidate.source_id,
+            "receipt_status": result.receipt.status,
+            "stop_reason": result.receipt.stop_reason,
+            "note_chars": len(result.draft.markdown.strip()),
+            "published_path": str(path),
+        }

@@ -37,9 +37,32 @@ def main() -> int:
         default=None,
         help="Opt-in source cache root containing <source_id>/normalized/blocks.jsonl; skips PDF download and parsing.",
     )
+    parser.add_argument(
+        "--reader-root",
+        type=Path,
+        default=None,
+        help="Run the PaperReader reading route (note-only publish) instead of the DeepSeek deep-reader, "
+        "reading server-normalized blocks from <root>/<source_id>/normalized/blocks.jsonl.",
+    )
+    parser.add_argument(
+        "--vault-root",
+        type=Path,
+        default=None,
+        help="Vault root for note-only publish (defaults to ./knowledge under the project root).",
+    )
     args = parser.parse_args()
     if args.limit < 1 or args.limit > 10:
         parser.error("--limit must be between 1 and 10.")
+
+    if args.reader_root is not None:
+        from research_pulse.reader_production import ReaderConfig, ReaderProductionService
+        vault_root = args.vault_root or (_project_root() / "knowledge")
+        service = ReaderProductionService(ReaderConfig(normalized_root=args.reader_root), vault_root)
+        candidates = ArxivCandidateFinder().discover(topic=args.topic, domain=args.domain, limit=args.limit)
+        for candidate in candidates:
+            receipt = service.process(candidate)
+            print(f"{receipt['source_id']}: {receipt['receipt_status']} -> {receipt['published_path']}")
+        return 0
 
     database_url = os.getenv("DATABASE_URL")
     if not database_url:
