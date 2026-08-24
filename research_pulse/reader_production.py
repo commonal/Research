@@ -17,11 +17,13 @@ leg is a separate operational seam (documented in docs/architecture-consolidatio
 """
 
 from dataclasses import dataclass, replace
+from hashlib import sha256
 from pathlib import Path
 from typing import Any
 
+from research_pulse.knowledge.models import KnowledgeAsset
 from research_pulse.production.normalized import load_normalized_jsonl
-from research_pulse.production.pipeline import PaperCandidate
+from research_pulse.production.pipeline import ExtractedDraft, PaperCandidate
 from research_pulse.production.reading import (
     CanonicalPaperIR,
     DeepSeekPaperReadingModel,
@@ -120,3 +122,38 @@ schema_version: 1
             "note_chars": len(result.draft.markdown.strip()),
             "asset_markdown": markdown,
         }
+
+
+class ReaderExtractor:
+    """DraftExtractor adapter that routes a paper through PaperReader.
+
+    Implements the production extractor seam (``extract(candidate, material) ->
+    ExtractedDraft``) so ``ProductionService`` can be built with the reading
+    route instead of the DeepSeek deep-reader.  ``material`` is ignored: the
+    reading route resolves the server-normalized blocks from ``normalized_root``.
+    The note is carried as a schema-v1 asset with empty claims (option A: the
+    note is the knowledge; claims/provenance are a later boundary change).
+    """
+
+    def __init__(self, config: ReaderConfig, model: Any | None = None) -> None:
+        self.reader = ReaderProduction(config, model)
+
+    def extract(self, candidate: PaperCandidate, material: Any) -> ExtractedDraft:
+        result = self.reader.read(candidate)
+        note = result.draft.markdown
+        receipt = result.receipt
+        pub = "published" if receipt.status not in {"failed", "needs_review"} else "needs_review"
+        version = getattr(receipt, "completed_at", None) or getattr(receipt, "started_at", None) or "manual"
+        asset = KnowledgeAsset(
+            knowledge_id=f"kp:arxiv:{candidate.source_id}",
+            knowledge_version=version,
+            publication_status=pub,
+            evidence_level="full_text_text",
+            source_urls=(candidate.source_url,),
+            domain=candidate.domain,
+            title=candidate.title,
+            body=note,
+            content_sha256=sha256(note.encode("utf-8")).hexdigest(),
+            schema_version=1,
+        )
+        return ExtractedDraft(asset=asset, claims=())
