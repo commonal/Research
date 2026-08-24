@@ -1,0 +1,24 @@
+{
+  "introduction_problem": {
+    "block_id": "audit:introduction-problem",
+    "section": "Introduction",
+    "text": "Current methods grant broad privileges and therefore expose users to unnecessary execution risk."
+  },
+  "shared_problem_method": {
+    "block_id": "audit:shared-problem-method",
+    "section": "Introduction",
+    "text": "Current methods grant broad privileges, while the proposed policy learns a task-conditioned permission boundary."
+  },
+  "short_table_title": {
+    "block_id": "audit:table-title",
+    "section": "Results",
+    "text": "TABLE V. CONTINUATION RESULTS"
+  },
+  "complete_result": {
+    "block_id": "audit:complete-result",
+    "section": "Results",
+    "text": "On the held-out task, Baseline reaches 67.75% success while Proposed reaches 90.50% success."
+  },
+  "reading_number": "The continuation experiment reports 98.48% success.",
+  "formula_expansion": "The unresolved reward formula proves that parameter alpha directly controls permission sparsity."
+}

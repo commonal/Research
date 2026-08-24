@@ -1,0 +1,36 @@
+schema: spec-driven
+
+context: |
+  Product: Research Pulse, a personal research knowledge base focused on source-backed paper reading notes and RAG consumption.
+  Backend: Python 3.13, FastAPI, LangGraph, PostgreSQL, pgvector, PostgreSQL FTS.
+  Frontend: React 19, TypeScript, Vite.
+  Paper sources and parsing: arXiv plus MinerU/Docling; source PDFs and complete parser outputs are retained by source_id in the managed Layer C source cache for rereading, but never enter the knowledge vault, Git, RAG, database, or LangGraph checkpoints. A published note may copy only a bounded set of explicitly selected explanatory images into its versioned Layer A assets.
+  LLM: DeepSeek is optional at startup and is used only through narrow injected text/vision adapters for paper reading, writing, entailment, and grounded answers.
+  Canonical knowledge: versioned published Markdown plus provenance under knowledge/ are the factual source of truth; selected image assets are explanatory attachments, and database chunks/vectors are rebuildable derivatives.
+  Quality policy: source facts require resolvable anchors; unsupported claims must not be published or used for answers.
+  Architecture: FastAPI is a thin transport layer, LangGraph owns resumable orchestration, and domain contracts remain framework-free.
+  Testing: Python unittest suites under tests/ and worker/tests/; frontend must pass npm run build.
+  Language: user-facing product copy and project planning artifacts should be in Simplified Chinese.
+
+rules:
+  proposal:
+    - Include explicit non-goals so the MVP does not become a generic document platform.
+    - State how source traceability and hallucination control are affected.
+  specs:
+    - Express externally observable behavior with GIVEN/WHEN/THEN scenarios.
+    - Include failure and empty-state scenarios where applicable.
+  design:
+    - Preserve Markdown plus provenance as the published factual source of truth; allow only bounded selected explanatory images as version assets, and keep complete raw paper/parser content out of the knowledge vault, Git, RAG, database, and checkpoints while retaining it in the managed Layer C source cache.
+    - Identify API, domain, persistence, and frontend seams separately.
+  tasks:
+    - Keep tasks small enough to implement and verify independently.
+    - Include backend tests and frontend build verification where affected.
+
+operations:
+  apply:
+    guidance:
+      - Preserve unrelated user changes in the dirty worktree.
+      - Run focused tests after each layer and the relevant full suite before completion.
+  archive:
+    guidance:
+      - Record user-visible behavior and verification results in the archive summary.

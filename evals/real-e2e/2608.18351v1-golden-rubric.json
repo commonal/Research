@@ -1,0 +1,35 @@
+{
+  "paper_id": "2608.18351v1",
+  "golden_answer": "2608.18351v1-golden-reading.md",
+  "required_sections": [
+    "背景：作者发现了什么问题",
+    "论文真正要解决的问题",
+    "核心想法：把“最小权限”变成任务相对的可计算目标",
+    "方法如何落地",
+    "实验如何验证这个想法",
+    "应该怎样解读，而不是过度宣传"
+  ],
+  "required_concepts": [
+    "task-relative excess-authority",
+    "足够权限包络",
+    "六维权限/风险向量",
+    "broker",
+    "前后置审计",
+    "Qwen3.5-4B",
+    "safe success",
+    "64.36%",
+    "98.48%",
+    "4.56%",
+    "0.79%",
+    "不能替代权限门禁和沙箱"
+  ],
+  "required_source_anchors": [
+    "I Introduction",
+    "III-A",
+    "III-B",
+    "III-D",
+    "III-E",
+    "IV-A",
+    "V Limitations and Future Work"
+  ]
+}

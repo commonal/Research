@@ -1,0 +1,3 @@
+# Optional heavy dependency used only by `parse-fulltext`.
+# Discovery and abstract-only analysis remain stdlib-only.
+docling>=2.0.0

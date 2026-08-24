@@ -1,0 +1,3 @@
+# Self-built retrieval baseline. Vector embeddings and reranking are introduced
+# only after the FTS baseline and evaluation suite are stable.
+psycopg[binary]>=3.2,<4.0

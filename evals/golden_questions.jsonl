@@ -1,0 +1,2 @@
+{"question_id":"memory-problem","query":"What problem does Infini Memory address for long-term LLM agents?","answerable":true,"expected_knowledge_ids":["kp:arxiv:2606.10677"],"domain":"llm_agent_memory"}
+{"question_id":"memory-boundary","query":"Does the knowledge base contain a benchmark comparison for long-context memory?","answerable":false,"expected_knowledge_ids":[],"domain":"llm_agent_memory"}

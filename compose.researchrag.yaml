@@ -1,0 +1,18 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: research-pulse-postgres
+    environment:
+      POSTGRES_DB: research_pulse
+      POSTGRES_USER: research_pulse
+      POSTGRES_PASSWORD: research_pulse_dev_only
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./researchrag-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U research_pulse -d research_pulse"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped

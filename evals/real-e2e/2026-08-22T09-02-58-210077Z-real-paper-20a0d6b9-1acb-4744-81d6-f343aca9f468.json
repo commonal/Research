@@ -1,0 +1,93 @@
+{
+  "answer_length": null,
+  "answer_sha256": null,
+  "browser_status": "skipped",
+  "browser_summary": null,
+  "bundle_markdown_path": null,
+  "chunk_ids": [],
+  "citation_ids": [],
+  "claim_ids": [],
+  "content_sha256": null,
+  "domain": "llm_agent_memory",
+  "evidence_level": null,
+  "final_status": "environment_blocked",
+  "knowledge_id": null,
+  "knowledge_version": null,
+  "manifest_status": null,
+  "model": "deepseek-v4-flash",
+  "provenance_sha256": null,
+  "receipt_schema_version": 1,
+  "run_id": "real-paper-20a0d6b9-1acb-4744-81d6-f343aca9f468",
+  "run_kind": "real",
+  "source_anchor_ids": [],
+  "source_id": null,
+  "stages": [
+    {
+      "duration_ms": 20256,
+      "error_code": null,
+      "error_summary": null,
+      "metrics": {
+        "check_count": 5
+      },
+      "name": "preflight",
+      "started_at": "2026-08-22T09:02:58.213963Z",
+      "status": "passed"
+    },
+    {
+      "duration_ms": 0,
+      "error_code": "no_unprocessed_candidate",
+      "error_summary": "实时结果中没有尚未处理的论文候选。",
+      "metrics": {},
+      "name": "discovery",
+      "started_at": "2026-08-22T09:03:18.469659Z",
+      "status": "blocked"
+    },
+    {
+      "duration_ms": 0,
+      "error_code": null,
+      "error_summary": null,
+      "metrics": {},
+      "name": "production",
+      "started_at": "2026-08-22T09:03:18.469700Z",
+      "status": "skipped"
+    },
+    {
+      "duration_ms": 0,
+      "error_code": null,
+      "error_summary": null,
+      "metrics": {},
+      "name": "bundle_verify",
+      "started_at": "2026-08-22T09:03:18.469707Z",
+      "status": "skipped"
+    },
+    {
+      "duration_ms": 0,
+      "error_code": null,
+      "error_summary": null,
+      "metrics": {},
+      "name": "retrieval_verify",
+      "started_at": "2026-08-22T09:03:18.469711Z",
+      "status": "skipped"
+    },
+    {
+      "duration_ms": 0,
+      "error_code": null,
+      "error_summary": null,
+      "metrics": {},
+      "name": "api_chat_verify",
+      "started_at": "2026-08-22T09:03:18.469715Z",
+      "status": "skipped"
+    },
+    {
+      "duration_ms": 0,
+      "error_code": null,
+      "error_summary": null,
+      "metrics": {},
+      "name": "receipt",
+      "started_at": "2026-08-22T09:03:18.469718Z",
+      "status": "passed"
+    }
+  ],
+  "started_at": "2026-08-22T09:02:58.210077Z",
+  "topic": "habitual action grounding recursive large language model agents"
+}

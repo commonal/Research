@@ -1,0 +1,62 @@
+{
+  "audit_schema_version": 1,
+  "audit_status": "failed",
+  "decision": "not_complete_e2e",
+  "source_id": "2608.18351v1",
+  "knowledge_id": "kp:arxiv:2608.18351v1",
+  "audited_knowledge_version": "2026-08-22T10:37:31.084511+00:00",
+  "source_url": "https://arxiv.org/abs/2608.18351v1",
+  "automated_core_status": "passed",
+  "browser_status": "passed",
+  "checks": [
+    {
+      "name": "published_bundle_identity",
+      "status": "passed",
+      "detail": "Markdown、provenance 和 indexed manifest 的身份与哈希一致。"
+    },
+    {
+      "name": "source_fact_anchor_count",
+      "status": "passed",
+      "detail": "bundle 中有 4 条 source_fact 和 4 个可解析 source anchor。"
+    },
+    {
+      "name": "source_link_and_anchor_visibility",
+      "status": "passed",
+      "detail": "论文来源 URL 和 source anchor ID 均可从 bundle/provenance 读取。"
+    },
+    {
+      "name": "method_and_limitations_boundary",
+      "status": "failed",
+      "detail": "方法、实验与局限段落包含超出当前可持久证据边界的归纳数字。"
+    },
+    {
+      "name": "formula_and_figure_boundary",
+      "status": "failed",
+      "detail": "公式 claim 标记为 formula-not-decoded，图表只保留题注，不能作为已解读证据。"
+    }
+  ],
+  "blocking_findings": [
+    {
+      "code": "unsupported_numeric_summary",
+      "section": "实验与结果",
+      "detail": "正文写入 98.48%、64.36%、0.79% 等结果，但现有 source_fact anchor 没有对应的完整实验数值证据。"
+    },
+    {
+      "code": "unparsed_formula_claim",
+      "claim_id": "claim:3",
+      "anchor_id": "source:2608.18351v1:d-reward-and-training:14",
+      "detail": "锚点包含 formula-not-decoded，不能支持完整奖励公式或其参数解释。"
+    },
+    {
+      "code": "truncated_table_claim",
+      "claim_id": "claim:4",
+      "anchor_id": "source:2608.18351v1:e-continuation-study-results:27",
+      "detail": "锚点从表格残片开始，不能支持表格完整比较或延续研究结论。"
+    },
+    {
+      "code": "quality_gate_rejected_reread",
+      "detail": "2026-08-23 文本级重读返回 needs_review，原因是 evidence_block_facet_mismatch 和 missing_evidence_facet；未产生新 current 版本。"
+    }
+  ],
+  "next_action": "改进证据块 facet 对齐和数字/图表边界抽取后，重新精读并在质量门禁通过后再完成完整 E2E 验收。"
+}

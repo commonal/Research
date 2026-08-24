@@ -1,0 +1,10 @@
+{
+  "name": "llm-agent-memory",
+  "query": "LLM Agent Memory",
+  "exclude_terms": [
+    "survey"
+  ],
+  "daily_limit": 3,
+  "max_results": 10,
+  "source": "arxiv"
+}

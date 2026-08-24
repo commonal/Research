@@ -1,0 +1,3 @@
+# LangGraph orchestrates Research Pulse state. It never owns the knowledge
+# source of truth, the retrieval index, or long-lived source PDFs.
+langgraph>=1.0,<2.0

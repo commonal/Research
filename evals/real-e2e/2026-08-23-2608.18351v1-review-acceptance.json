@@ -1,0 +1,141 @@
+{
+  "audit_schema_version": 2,
+  "audit_status": "blocked",
+  "decision": "BLOCKED",
+  "paper_id": "2608.18351v1",
+  "source_id": "2608.18351v1",
+  "knowledge_id": "kp:arxiv:2608.18351v1",
+  "knowledge_version": "2026-08-22T18:37:34.557370+00:00",
+  "source_url": "https://arxiv.org/abs/2608.18351v1",
+  "bundle_path": "knowledge/papers/2608.18351v1/2026-08-22T18-37-34.557370-00-00.md",
+  "provenance_path": "knowledge/papers/2608.18351v1/2026-08-22T18-37-34.557370-00-00.provenance.json",
+  "manifest_path": "knowledge/papers/2608.18351v1/2026-08-22T18-37-34.557370-00-00.manifest.json",
+  "manifest": {
+    "publication_status": "published",
+    "index_status": "indexed",
+    "content_sha256": "4d090f9c3544d54dd322307c7f8c580ca0fc86c9f4c08bcb7d5f6e73db638ae4"
+  },
+  "provenance": {
+    "schema_version": 2,
+    "claim_count": 4,
+    "source_fact_count": 4,
+    "anchor_count": 4,
+    "reading_section_count": 10,
+    "provenance_sha256": "500674369f13599415b8ea918cb3d8f1c29164c8c28cbb8465e292947b90fef4"
+  },
+  "facet_audit": {
+    "problem": {
+      "status": "passed",
+      "claim_id": "claim:1",
+      "anchor_id": "source:2608.18351v1:i-introduction:8",
+      "conclusion": "真实 Introduction 正文锚点描述工具型智能体完成任务但造成非预期副作用，适配 problem。"
+    },
+    "method": {
+      "status": "passed",
+      "claim_id": "claim:2",
+      "anchor_id": "source:2608.18351v1:c-modular-framework-use:33",
+      "conclusion": "真实方法章节锚点包含 broker、task schemas、post-action verifiers、excess privilege 及任务差异示例，适配 method。"
+    },
+    "experiment": {
+      "status": "passed",
+      "claim_id": "claim:3",
+      "anchor_id": "source:2608.18351v1:e-tasks-and-evaluation:41",
+      "conclusion": "真实实验设计锚点完整支撑 2000/1500/300/200 任务划分、500 验证任务及课程范围；不把该锚点扩写为结果指标。"
+    },
+    "limitation": {
+      "status": "passed",
+      "claim_id": "claim:4",
+      "anchor_id": "source:2608.18351v1:v-limitations-and-future-work:86",
+      "conclusion": "真实局限章节锚点支撑合成任务、生产仓库/服务外推限制、判断权重和单一 4B 模型/适配器家族限制。"
+    }
+  },
+  "numeric_integrity": {
+    "status": "passed_for_published_claims",
+    "published_numeric_claims": [
+      "实验设计：2000 个任务；1500 个训练任务；300 个族内验证任务；200 个排除族任务；500 个验证任务。",
+      "局限：一个 4B 模型；参考文献编号 24。",
+      "复现线索重复的任务划分仍与实验锚点一致。"
+    ],
+    "durable_excerpt_check": "实验 anchor 的 1000 字符边界内包含 2000、1500、300、200、500 及各自对象和分区上下文；结尾截断在 sufficient-authority envelope 单词内部，但不截断任何已发布数字主张或其语义。",
+    "original_source_numbers_not_published": "arXiv 原文摘要/实验章节另有 98.48%、64.36%、4.56%、0.79%、2896 episodes 等结果数字；当前 bundle 没有把它们写入正文，因为对应完整 durable evidence 不在当前证据块中。审计未将其当作当前 bundle 的已验证结果。",
+    "scope_note": "Markdown 中的“文中未见基线、指标或数值结果”只能按当前可持久证据块范围理解；原论文确实包含这些结果数字，若该句意图指整篇原文则需要后续措辞修正。"
+  },
+  "formula_table_boundary": {
+    "status": "passed_as_explicit_degradation",
+    "formula": "未发布完整奖励公式、参数含义或推导；Markdown 的精读证据边界明确写出公式缺失，浏览器页面不显示自动公式解释。",
+    "table": "未发布 Table I 的完整 row/column、指标定义或结果表格；Markdown 和浏览器边界明确写出完整表格缺失，未将 TABLE 标题或残片当作实验结果。",
+    "figures_and_training": "未发布图表结果、完整算法伪代码、训练循环、损失函数、策略更新或提示模板，边界明确。"
+  },
+  "version_consistency": {
+    "status": "passed_for_current_target",
+    "filesystem": "新 Markdown、provenance、manifest identity/hash 一致；manifest 为 published/indexed。",
+    "postgres": {
+      "current_version": "2026-08-22T18:37:34.557370+00:00",
+      "current_is_current": true,
+      "current_chunk_count": 4,
+      "current_source_fact_chunk_count": 4,
+      "old_version_is_current": false
+    },
+    "api": "GET /api/knowledge/... 返回 200、provenance_status=complete、evidence_model=section_anchors、reading_mode=deep_reading、4 anchors、10 reading sections；API 使用 Asia/Shanghai 表示的同一 UTC 版本。",
+    "old_receipt_check": "旧 2026-08-22T10:37:31.084511+00:00 receipt 明确指向旧 bundle，未作为本次新版本通过凭证。"
+  },
+  "browser_acceptance": {
+    "status": "passed",
+    "server": "真实 Uvicorn 8000 + Vite 5173，scheduler=false。",
+    "home": "首页显示目标论文标题，最近精读入口存在。",
+    "detail": "详情页显示新 bundle 正文、来源链接、四类 source_fact 和 10 个逐节证据映射；problem/method/experiment/limitation 分别显示第 1/3/4/8 页的同版本来源锚点。",
+    "scoped_rag": {
+      "status": "passed",
+      "question": "这篇论文的实验设置包含哪些任务和验证分区？",
+      "citation_version": "2026-08-22T18:37:34.557370+00:00",
+      "citation_anchor": "anchor:kp:arxiv:2608.18351v1:2026-08-22T18:37:34.557370+00:00:claim-3:3",
+      "citation_claim": "claim:3",
+      "out_of_scope_question": "完整奖励公式、参数含义及 Table I 完整行列数值被明确回答为证据不足；没有伪造公式或表格。"
+    },
+    "console_errors": 0
+  },
+  "reconcile": {
+    "status": "failed_with_explained_historical_compatibility_issue",
+    "command": ".venv\\Scripts\\python.exe -m research_pulse.production.reconcile --vault-root knowledge --check-indexed",
+    "exit_code": 1,
+    "summary": {
+      "already_indexed": 1,
+      "damaged": 3,
+      "failed": 0,
+      "recovered": 0,
+      "skipped": 0
+    },
+    "current_target_item": "2608.18351v1 @ 2026-08-22T18:37:34.557370+00:00 => already_indexed",
+    "damaged_items": [
+      "2608.16447v1 @ 2026-08-22T10:24:19.839687+00:00",
+      "2608.18351v1 @ 2026-08-22T10:37:31.084511+00:00",
+      "2608.19854v1 @ 2026-08-22T10:30:57.970793+00:00"
+    ],
+    "root_cause": "三个历史 bundle 的 manifest/Markdown/provenance 可解析，但当前 ResearchRAG.publish 重新计算 provenance hash 时拒绝 mismatched provenance hash；它们是旧 provenance 序列化格式产生的已索引历史版本。",
+    "impact": "当前新版本已正确 indexed 且为唯一 current，首页/详情/scoped RAG 均读取新版本；但全量历史 reconcile 不能通过，历史版本无法由当前代码完成无损重建。需要后续最小生产兼容 change，本会话不修复。"
+  },
+  "automation": {
+    "python_tests": "183/183 passed, skipped=0, includes PostgreSQL integration",
+    "worker_tests": "13/13 passed",
+    "frontend_vitest": "12/12 passed",
+    "frontend_markdown_verification": "passed",
+    "frontend_production_build": "passed",
+    "openspec_validate": {
+      "improve-evidence-block-quality": "passed",
+      "separate-deep-reading-and-ingestion": "passed",
+      "verify-real-paper-end-to-end": "passed"
+    },
+    "openspec_status_command": "openspec status --json failed because this CLI requires --change; apply instructions for target reported 22/22, which was not treated as acceptance evidence."
+  },
+  "remaining_openspec_tasks": {
+    "improve-evidence-block-quality": [],
+    "separate-deep-reading-and-ingestion": ["4.3"],
+    "verify-real-paper-end-to-end": ["5.3", "6.4"]
+  },
+  "blocking_findings": [
+    "reconcile --check-indexed exits 1 with three historical damaged manifests due provenance-hash compatibility; current target is not damaged but the requested full reconcile gate is not green.",
+    "The published reading deliberately omits original result metrics because they lack current durable evidence; the phrase claiming no metrics must remain scoped to available evidence or be corrected in a future content-quality change."
+  ],
+  "final_decision": "BLOCKED",
+  "archive_recommendation": "Do not archive any of the three changes. Keep all currently unchecked tasks unchecked; open a minimal follow-up for historical provenance-hash compatibility and, if desired, scoped wording/coverage of original result metrics."
+}

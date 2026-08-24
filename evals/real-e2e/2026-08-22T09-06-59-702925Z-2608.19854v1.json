@@ -1,0 +1,96 @@
+{
+  "answer_length": null,
+  "answer_sha256": null,
+  "browser_status": "skipped",
+  "browser_summary": null,
+  "bundle_markdown_path": null,
+  "chunk_ids": [],
+  "citation_ids": [],
+  "claim_ids": [],
+  "content_sha256": null,
+  "domain": "llm_agent_memory",
+  "evidence_level": null,
+  "final_status": "acceptance_failed",
+  "knowledge_id": null,
+  "knowledge_version": null,
+  "manifest_status": null,
+  "model": "deepseek-v4-flash",
+  "provenance_sha256": null,
+  "receipt_schema_version": 1,
+  "run_id": "real-paper-06e637f8-8817-4b45-9015-83b82be5a97c",
+  "run_kind": "real",
+  "source_anchor_ids": [],
+  "source_id": "2608.19854v1",
+  "stages": [
+    {
+      "duration_ms": 5786,
+      "error_code": null,
+      "error_summary": null,
+      "metrics": {
+        "check_count": 5
+      },
+      "name": "preflight",
+      "started_at": "2026-08-22T09:06:59.706733Z",
+      "status": "passed"
+    },
+    {
+      "duration_ms": 39,
+      "error_code": null,
+      "error_summary": null,
+      "metrics": {
+        "candidate_pool_count": 5,
+        "selected_count": 1
+      },
+      "name": "discovery",
+      "started_at": "2026-08-22T09:07:05.492496Z",
+      "status": "passed"
+    },
+    {
+      "duration_ms": 5518,
+      "error_code": "production_failed",
+      "error_summary": "Production did not publish the selected paper: Docling could not parse this PDF. Retry without --with-formulas, or choose another paper.",
+      "metrics": {},
+      "name": "production",
+      "started_at": "2026-08-22T09:07:05.531107Z",
+      "status": "failed"
+    },
+    {
+      "duration_ms": 0,
+      "error_code": null,
+      "error_summary": null,
+      "metrics": {},
+      "name": "bundle_verify",
+      "started_at": "2026-08-22T09:07:11.049200Z",
+      "status": "skipped"
+    },
+    {
+      "duration_ms": 0,
+      "error_code": null,
+      "error_summary": null,
+      "metrics": {},
+      "name": "retrieval_verify",
+      "started_at": "2026-08-22T09:07:11.049219Z",
+      "status": "skipped"
+    },
+    {
+      "duration_ms": 0,
+      "error_code": null,
+      "error_summary": null,
+      "metrics": {},
+      "name": "api_chat_verify",
+      "started_at": "2026-08-22T09:07:11.049226Z",
+      "status": "skipped"
+    },
+    {
+      "duration_ms": 0,
+      "error_code": null,
+      "error_summary": null,
+      "metrics": {},
+      "name": "receipt",
+      "started_at": "2026-08-22T09:07:11.049232Z",
+      "status": "passed"
+    }
+  ],
+  "started_at": "2026-08-22T09:06:59.702925Z",
+  "topic": "large language model agents"
+}

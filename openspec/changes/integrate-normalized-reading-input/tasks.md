@@ -1,0 +1,5 @@
+- [x] 1.1 增加 normalized JSONL 反序列化和表格 Markdown 投影。
+- [x] 1.2 实现 normalized blocks 到 SourceMaterial/EvidenceBlock 的适配器。
+- [x] 1.3 实现显式 opt-in NormalizedSourceParser，保证只读缓存；production CLI 增加 `--normalized-root`，默认路径保持兼容。
+- [x] 1.4 增加 fixture、缓存命中和公式/表格边界测试。新增测试 5/5 通过，受影响 production/evidence 测试 35/35 通过。
+- [x] 1.5 在 2608.18351v1 normalized 输出上运行真实输入回归，并运行受影响测试与 OpenSpec strict validation。服务器 normalized CLI 输出 135 blocks（aligned=100、mineru_only=2、docling_only=33），公式 5/5、表格 5/5、图表 3/3；strict validation 通过。

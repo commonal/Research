@@ -1,0 +1,22 @@
+# Runtime data and secrets
+anythingllm-storage/
+.env
+.venv/
+__pycache__/
+*.py[cod]
+
+# Generated knowledge is intentionally kept local until its review workflow is defined.
+knowledge/generated/
+knowledge/review-drafts/
+data/candidates/
+data/parse-receipts/
+data/transient/
+researchrag-postgres/
+
+# Heavy / throwaway work trees and build artifacts (keep source, ignore outputs)
+node_modules/
+frontend/dist/
+tmp/
+.agents/
+evals/real-e2e/*.html
+evals/real-e2e/*/

@@ -1,0 +1,4 @@
+-r requirements-rag.txt
+-r requirements-workflow.txt
+-r requirements-fulltext.txt
+python-dotenv>=1.0,<2
