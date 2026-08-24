@@ -21,7 +21,6 @@ from research_pulse.knowledge.models import (
     KnowledgeBundle,
     KnowledgeClaim,
     ReadingSectionEvidence,
-    ReadingVisualEvidence,
     normalize_evidence_excerpt,
 )
 from research_pulse.production.evidence import EvidenceBlock
@@ -35,16 +34,6 @@ class EntailmentJudge(Protocol):
     """A separately prompted judge which may only assess one supplied claim."""
 
     def assess(self, *, claim: str, evidence: str) -> EntailmentVerdict: ...
-
-
-class ReadingSection(Protocol):
-    text: str
-    evidence_block_ids: tuple[str, ...]
-    visuals: tuple[object, ...]
-
-
-class ReadingAnalysis(Protocol):
-    def sections(self) -> Mapping[str, ReadingSection]: ...
 
 
 @dataclass(frozen=True)
@@ -74,7 +63,6 @@ def validate_draft(
     anchors: Mapping[str, EvidenceAnchor],
     source_fragments: Mapping[str, str],
     evidence_blocks: Mapping[str, EvidenceBlock] | None = None,
-    reading_analysis: ReadingAnalysis | None = None,
     visual_assets: Mapping[str, object] | None = None,
     entailment_judge: EntailmentJudge | None = None,
 ) -> QualityGateResult:
@@ -179,17 +167,6 @@ def validate_draft(
         if anchor_id in durable_anchors
     }
 
-    reading_sections: tuple[ReadingSectionEvidence, ...] = ()
-    if reading_analysis is not None:
-        reading_sections = _validate_reading_analysis(
-            reading_analysis=reading_analysis,
-            durable_anchors=durable_anchors,
-            evidence_blocks=evidence_blocks or {},
-            accepted_anchor_ids=accepted_anchor_ids,
-            visual_assets=visual_assets or {},
-            issues=issues,
-        )
-
     approved = not any(issue.severity == "blocking" for issue in issues)
     bundle = None
     if approved:
@@ -198,7 +175,6 @@ def validate_draft(
                 asset=asset,
                 claims=tuple(claims),
                 anchors=tuple(durable_anchors.values()),
-                reading_sections=reading_sections,
                 visual_assets=visual_assets or {},
             )
         except KnowledgeAssetError as error:
@@ -424,172 +400,6 @@ def _is_verbatim_anchored_excerpt(claim_text: str, fragments: Sequence[str]) -> 
     return any(normalized_claim in normalize_evidence_excerpt(fragment) for fragment in fragments)
 
 
-def _validate_reading_analysis(
-    *,
-    reading_analysis: ReadingAnalysis,
-    durable_anchors: Mapping[str, DurableEvidenceAnchor],
-    evidence_blocks: Mapping[str, EvidenceBlock],
-    accepted_anchor_ids: set[str],
-    visual_assets: Mapping[str, object],
-    issues: list[QualityIssue],
-) -> tuple[ReadingSectionEvidence, ...]:
-    # The narrative may legitimately connect an introduction definition to a
-    # method section, or a method design to an experiment interpretation. The
-    # generation prompt provides the reading order; this gate only verifies
-    # that cited blocks are eligible, same-version evidence. Facet semantics
-    # remain enforced on durable source_fact claims themselves.
-    expected_facets: dict[str, set[str]] = {
-        section: {"problem", "method", "experiment", "limitation"}
-        for section in reading_analysis.sections()
-    }
-    all_excerpt_numbers = {
-        number
-        for anchor in durable_anchors.values()
-        for number in _numeric_tokens(anchor.evidence_excerpt)
-    }
-    # OCR/Markdown conversion can drop a percent sign while preserving the
-    # numeric value.  Treat ``85.98`` and ``85.98%`` as the same canonical
-    # value for the reading-to-excerpt check; the source-fact gate still checks
-    # the verbatim claim against its source fragment.
-    all_excerpt_numbers_with_units = {
-        variant
-        for number in all_excerpt_numbers
-        for variant in _numeric_token_variants(number)
-    }
-    mappings: list[ReadingSectionEvidence] = []
-    for section_name, section in reading_analysis.sections().items():
-        if not section.text.strip():
-            continue
-        valid_anchor_ids: list[str] = []
-        for anchor_id in section.evidence_block_ids:
-            durable = durable_anchors.get(anchor_id)
-            block = evidence_blocks.get(anchor_id)
-            allowed = expected_facets.get(section_name)
-            if (
-                durable is None
-                or anchor_id not in accepted_anchor_ids
-                or block is None
-                or not block.eligible_for_fact
-                or (allowed is not None and not allowed.intersection(block.supported_facets))
-            ):
-                issues.append(
-                    QualityIssue(
-                        code="reading_section_anchor_not_durable",
-                        severity="blocking",
-                        message="A reading section may cite only same-version durable anchors used by approved source facts.",
-                        anchor_id=anchor_id,
-                    )
-                )
-                continue
-            valid_anchor_ids.append(anchor_id)
-
-        valid_visuals: list[ReadingVisualEvidence] = []
-        for visual in getattr(section, "visuals", ()):
-            block_id = getattr(visual, "block_id", None)
-            role = getattr(visual, "role", None)
-            explanation = getattr(visual, "explanation", None)
-            block = evidence_blocks.get(block_id) if isinstance(block_id, str) else None
-            if (
-                not isinstance(block_id, str)
-                or not isinstance(role, str)
-                or not isinstance(explanation, str)
-                or block is None
-                or block.candidate.kind not in {"formula", "table", "figure"}
-                or not explanation.strip()
-            ):
-                issues.append(
-                    QualityIssue(
-                        code="reading_visual_not_resolvable",
-                        severity="review",
-                        message="A selected visual is not resolvable in the current evidence run.",
-                        anchor_id=block_id if isinstance(block_id, str) else None,
-                    )
-                )
-                continue
-            asset_path = next(
-                (path for path, source in visual_assets.items() if getattr(block.candidate, "image_source_path", None) == source),
-                None,
-            ) if block.candidate.kind == "figure" else None
-            try:
-                valid_visuals.append(
-                    ReadingVisualEvidence(
-                        block_id=block_id,
-                        kind=block.candidate.kind,
-                        role=role,
-                        explanation=explanation,
-                        asset_path=asset_path if isinstance(asset_path, str) else None,
-                    )
-                )
-            except Exception as error:
-                issues.append(
-                    QualityIssue(
-                        code="reading_visual_invalid",
-                        severity="review",
-                        message=str(error),
-                        anchor_id=block_id,
-                    )
-                )
-        mappings.append(
-            ReadingSectionEvidence(
-                section_name,
-                tuple(dict.fromkeys(valid_anchor_ids)),
-                tuple(valid_visuals),
-            )
-        )  # type: ignore[arg-type]
-
-        if not valid_anchor_ids:
-            issues.append(
-                QualityIssue(
-                    code="reading_section_missing_evidence",
-                    severity="blocking",
-                    message="Every non-empty reading section needs at least one valid same-version durable anchor.",
-                )
-            )
-
-        for number in _numeric_tokens(section.text):
-            if not _numeric_token_variants(number).intersection(all_excerpt_numbers_with_units):
-                issues.append(
-                    QualityIssue(
-                        code="reading_number_not_in_durable_excerpt",
-                        severity="blocking",
-                        message=f"The reading section numeric token '{number}' is absent from its durable evidence excerpts.",
-                    )
-                )
-
-        referenced_blocks = [evidence_blocks[anchor_id] for anchor_id in valid_anchor_ids]
-        visual_blocks = [
-            evidence_blocks[visual.block_id]
-            for visual in getattr(section, "visuals", ())
-            if getattr(visual, "block_id", None) in evidence_blocks
-        ]
-        if _claims_formula_meaning(section.text) and not any(
-            block.candidate.kind == "formula" and block.eligible_for_fact
-            for block in referenced_blocks
-        ) and not any(block.candidate.kind == "formula" for block in visual_blocks):
-            issues.append(
-                QualityIssue(
-                    code="reading_formula_not_durable",
-                    severity="blocking",
-                    message="A formula interpretation requires an eligible formula block in this reading section.",
-                )
-            )
-
-        table_excerpts = [
-            durable_anchors[anchor_id].evidence_excerpt
-            for anchor_id in valid_anchor_ids
-            if evidence_blocks[anchor_id].candidate.kind == "table"
-        ]
-        if table_excerpts and not any(_table_comparison_evidence_complete(excerpt) for excerpt in table_excerpts):
-            issues.append(
-                QualityIssue(
-                    code="reading_table_comparison_incomplete",
-                    severity="blocking",
-                    message="A table comparison requires metric, comparison objects, and values in one durable excerpt.",
-                )
-            )
-    return tuple(mappings)
-
-
 def _numeric_tokens(value: str) -> tuple[str, ...]:
     # Parsers frequently render the same number in different continuous-text
     # forms: ``1,020`` vs ``1020`` and ``4 . 55 × 10 − 4`` vs ``4.55e-4``.
@@ -617,54 +427,6 @@ def _numeric_token_variants(value: str) -> set[str]:
     if normalized.endswith("%"):
         return {normalized, normalized[:-1]}
     return {normalized, f"{normalized}%"}
-
-
-def _claims_formula_meaning(value: str) -> bool:
-    # Mentioning an unavailable formula as a limitation is safe; only an
-    # affirmative interpretation of that formula should require a durable
-    # formula block.  Evaluate sentence-sized spans so a reproduction note
-    # such as “the exact formula is unknown” cannot trigger the gate merely
-    # because the same paragraph also mentions parameters.
-    uncertainty_markers = (
-        "unknown",
-        "unavailable",
-        "not recovered",
-        "cannot recover",
-        "未知",
-        "未能",
-        "未恢复",
-        "无法",
-        "不完整",
-        "缺失",
-    )
-    meaning_markers = (
-        "parameter",
-        "deriv",
-        "controls",
-        "proves",
-        "means",
-        "defines",
-        "参数",
-        "推导",
-        "表示",
-        "定义",
-        "控制",
-    )
-    for sentence in re.split(r"[。.!?；;\n]", value.casefold()):
-        if not any(marker in sentence for marker in ("formula", "equation", "公式", "方程")):
-            continue
-        if any(marker in sentence for marker in uncertainty_markers):
-            continue
-        if any(marker in sentence for marker in meaning_markers):
-            return True
-    return False
-
-
-def _table_comparison_evidence_complete(value: str) -> bool:
-    normalized = normalize_evidence_excerpt(value)
-    numbers = _numeric_tokens(normalized)
-    labels = re.findall(r"[A-Za-z][A-Za-z0-9._-]*|[\u4e00-\u9fff]{2,}", normalized)
-    return normalized.count("|") >= 6 and len(numbers) >= 2 and len(labels) >= 3
 
 
 def _check_numeric_tokens(
