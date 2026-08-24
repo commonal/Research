@@ -73,7 +73,7 @@ class ReviewDraft:
         now: str | None = None,
     ) -> "ReviewDraft":
         timestamp = now or _utc_now()
-        boundary = draft.reading_analysis.reading_boundary if draft.reading_analysis else "自动质量门禁未通过，正文仅供人工复核。"
+        boundary = "自动质量门禁未通过，正文仅供人工复核。"
         issues = tuple(
             ReviewIssue(issue.code, issue.severity, issue.claim_id, issue.anchor_id, issue.message)
             for issue in quality.issues
