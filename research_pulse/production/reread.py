@@ -2,8 +2,8 @@
 
 Re-reading is intentionally separate from daily discovery.  It resolves one
 currently published arXiv asset, bypasses deduplication only for that source,
-and then reuses the normal parser, deep reader, quality gate, and versioned
-publisher.  A successful run creates a new knowledge version; it never edits
+and then runs the PaperReader reading route (note-only publish) to create a
+new knowledge version.  A successful run creates a new version; it never edits
 the existing Markdown in place.
 """
 
@@ -20,17 +20,8 @@ from typing import Sequence
 from dotenv import load_dotenv
 
 from research_pulse.knowledge.reader import FilesystemKnowledgeReader, KnowledgeReader
-from research_pulse.production.adapters import (
-    DEFAULT_DEEPSEEK_TEXT_MODEL,
-    DeepSeekEntailmentJudge,
-    DeepSeekStructuredExtractor,
-    DoclingSourceParser,
-    FilesystemKnowledgePublisher,
-    PostgresProcessedPaperRegistry,
-)
-from research_pulse.production.pipeline import PaperCandidate, ProcessedPaperRegistry, ProductionService
-from research_pulse.rag.postgres import PostgresResearchRAG
-from research_pulse.review_drafts import PostgresReviewDraftStore
+from research_pulse.production.pipeline import PaperCandidate, ProcessedPaperRegistry
+from research_pulse.reader_production import ReaderConfig, ReaderProductionService
 
 
 class RereadError(ValueError):
@@ -80,31 +71,15 @@ def candidate_from_knowledge_id(knowledge_id: str, reader: KnowledgeReader) -> P
 def run_reread(
     *,
     knowledge_id: str,
-    database_url: str,
     vault_root: Path,
-    model: str,
-    with_formulas: bool = False,
-) -> object:
-    """Run one historical re-read through the standard production service."""
+    normalized_root: Path,
+    model: str | None = None,
+) -> dict[str, str | int | None]:
+    """Run one historical re-read through the PaperReader reading route."""
 
     reader = FilesystemKnowledgeReader(vault_root)
     candidate = candidate_from_knowledge_id(knowledge_id, reader)
-    rag = PostgresResearchRAG(database_url)
-    delegate = PostgresProcessedPaperRegistry(database_url)
-    rag.initialize()
-    delegate.initialize()
-    reread_registry = RereadProcessedPaperRegistry(delegate, target_source_id=candidate.source_id)
-    review_sink = PostgresReviewDraftStore(database_url=database_url, vault_root=vault_root)
-    review_sink.initialize()
-    service = ProductionService(
-        parser=DoclingSourceParser(with_formulas=with_formulas),
-        extractor=DeepSeekStructuredExtractor.from_environment(model=model),
-        publisher=FilesystemKnowledgePublisher(vault_root=vault_root, rag=rag, processed_registry=delegate),
-        processed_registry=reread_registry,
-        entailment_judge=DeepSeekEntailmentJudge.from_environment(model=model),
-        run_deadline_seconds=float(os.getenv("DEEPSEEK_RUN_DEADLINE_SECONDS", "420")),
-        review_sink=review_sink,
-    )
+    service = ReaderProductionService(ReaderConfig(normalized_root=normalized_root), vault_root, model=model)
     return service.process(candidate)
 
 
@@ -113,25 +88,30 @@ def main(argv: Sequence[str] | None = None) -> int:
     load_dotenv(project_root / ".env", override=False)
     parser = argparse.ArgumentParser(description="Re-read one existing Research Pulse arXiv knowledge asset.")
     parser.add_argument("--knowledge-id", required=True, help="Existing ID, for example kp:arxiv:2608.18351v1")
-    parser.add_argument("--model", default=os.getenv("DEEPSEEK_MODEL", DEFAULT_DEEPSEEK_TEXT_MODEL))
-    parser.add_argument("--with-formulas", action="store_true", help="Enable Docling formula enrichment.")
+    parser.add_argument(
+        "--normalized-root",
+        type=Path,
+        required=True,
+        help="Root containing <source_id>/normalized/blocks.jsonl for server-produced blocks.",
+    )
+    parser.add_argument(
+        "--vault-root",
+        type=Path,
+        default=None,
+        help="Vault root for note-only publish (defaults to ./knowledge under the project root).",
+    )
     args = parser.parse_args(argv)
 
-    database_url = os.getenv("DATABASE_URL")
-    if not database_url:
-        parser.error("DATABASE_URL is required; copy the local development value from .env.example.")
     try:
         receipt = run_reread(
             knowledge_id=args.knowledge_id,
-            database_url=database_url,
-            vault_root=_vault_root(project_root),
-            model=args.model,
-            with_formulas=args.with_formulas,
+            vault_root=args.vault_root or _vault_root(project_root),
+            normalized_root=args.normalized_root,
         )
     except RereadError as error:
         parser.error(str(error))
-    print(json.dumps(asdict(receipt), ensure_ascii=False))
-    return 0 if getattr(receipt, "status", None) == "published" else 1
+    print(json.dumps(receipt, ensure_ascii=False))
+    return 0 if receipt.get("receipt_status", "failed") == "published" else 1
 
 
 def _project_root() -> Path:
