@@ -2,6 +2,15 @@
 
 Every adapter has a narrow responsibility.  In particular, parsing material is
 kept in this call stack and never returned to the graph checkpoint.
+
+LEGACY / NOT ON THE NOTE-ONLY MAIN CHAIN
+----------------------------------------
+``ProductionService`` drove the retired ``DeepSeekStructuredExtractor`` bundle
+pipeline (~DraftExtractor -> validate_draft -> KnowledgeBundle).  The reader
+route does NOT use it: ``reader_production.ReaderProductionService`` is the
+source of truth for note-only production.  This module is retained for tests
+and any future bundle/claims re-introduction; do not wire it into new entry
+points.
 """
 
 from __future__ import annotations
@@ -87,6 +96,13 @@ class CandidateReceipt:
 
 @dataclass(frozen=True)
 class ProductionService:
+    """LEGACY — NOT on the note-only main chain.
+
+    Part of the retired DeepSeekStructuredExtractor bundle pipeline.  New
+    production entry points use ``reader_production.ReaderProductionService``.
+    Retained for tests and future claims/bundle work.
+    """
+
     parser: SourceParser
     extractor: DraftExtractor
     publisher: KnowledgePublisher

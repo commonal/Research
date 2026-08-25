@@ -66,7 +66,14 @@ def validate_draft(
     visual_assets: Mapping[str, object] | None = None,
     entailment_judge: EntailmentJudge | None = None,
 ) -> QualityGateResult:
-    """Return a conservative publishing decision for one candidate asset.
+    """LEGACY bundle quality gate — NOT on the note-only main chain.
+
+    Return a conservative publishing decision for one candidate asset.
+    Requires KnowledgeClaim + EvidenceAnchor + source_fragments and, when
+    approved, constructs a KnowledgeBundle.  The reader route's note gate is
+    the PaperReader receipt (CoverageLedger / number / formula / table /
+    material_unknowns) — this function is NOT used for note publication.
+    Retained for tests and any future claims/bundle path.
 
     ``source_fragments`` is transient parser output keyed by anchor ID.  It is
     intentionally passed in rather than saved with the asset, so the published

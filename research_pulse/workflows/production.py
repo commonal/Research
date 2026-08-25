@@ -1,4 +1,11 @@
-"""Resumable background production graph without raw-paper checkpoint state."""
+"""Resumable background production graph without raw-paper checkpoint state.
+
+LEGACY — NOT on the note-only main chain.  This LangGraph wrapper drives the
+retired ``ProductionService`` (DraftExtractor -> validate_draft ->
+KnowledgeBundle) bundle path.  Note-only production is sequenced directly via
+``reader_production.ReaderProductionService`` per candidate; nothing here wraps
+it.  Retained for scheduling/topic tests and any future batch entry point.
+"""
 
 from __future__ import annotations
 
