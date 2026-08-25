@@ -144,10 +144,20 @@ class ReaderNotePublisher:
     def __init__(self, vault_root: Path) -> None:
         self.vault_root = vault_root
 
-    def publish(self, candidate: PaperCandidate, note: str, receipt: Any) -> Path:
+    def publish(self, candidate: PaperCandidate, note: str, receipt: Any) -> Path | None:
+        """Write the schema-v1 note to the vault, routed by receipt status.
+
+        published    -> knowledge/papers/<source_id>/<version>.md  (canonical)
+        needs_review -> knowledge/staging/<source_id>/<version>.md (not in timeline)
+        failed       -> no file written; returns None
+        """
         markdown = ReaderProduction.note_asset_markdown(note, candidate, receipt)
         version = getattr(receipt, "completed_at", None) or getattr(receipt, "started_at", None) or "manual"
-        directory = self.vault_root / "papers" / candidate.source_id
+        status = getattr(receipt, "status", "failed")
+        bucket = "papers" if status == "published" else ("staging" if status == "needs_review" else None)
+        if bucket is None:
+            return None
+        directory = self.vault_root / bucket / candidate.source_id
         directory.mkdir(parents=True, exist_ok=True)
         path = directory / f"{_safe_version(version)}.md"
         path.write_text(markdown, encoding="utf-8")
@@ -164,10 +174,12 @@ class ReaderProductionService:
     def process(self, candidate: PaperCandidate) -> dict[str, Any]:
         result = self.reader.read(candidate)
         path = self.publisher.publish(candidate, result.draft.markdown, result.receipt)
+        status = result.receipt.status
         return {
             "source_id": candidate.source_id,
-            "receipt_status": result.receipt.status,
+            "receipt_status": status,
             "stop_reason": result.receipt.stop_reason,
             "note_chars": len(result.draft.markdown.strip()),
-            "published_path": str(path),
+            "bucket": "papers" if status == "published" else ("staging" if status == "needs_review" else None),
+            "published_path": str(path) if path else None,
         }

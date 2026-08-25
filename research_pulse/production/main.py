@@ -45,7 +45,8 @@ def main() -> int:
     candidates = ArxivCandidateFinder().discover(topic=args.topic, domain=args.domain, limit=args.limit)
     for candidate in candidates:
         receipt = service.process(candidate)
-        print(f"{receipt['source_id']}: {receipt['receipt_status']} -> {receipt['published_path']}")
+        path = receipt["published_path"]
+        print(f"{receipt['source_id']}: {receipt['receipt_status']} -> {path or '(no file written)'}")
     return 0
 
 

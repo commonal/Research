@@ -10,7 +10,6 @@ the existing Markdown in place.
 from __future__ import annotations
 
 import argparse
-from dataclasses import asdict
 from datetime import datetime
 import json
 import os
