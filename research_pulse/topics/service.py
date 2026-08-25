@@ -23,8 +23,65 @@ class ProductionBatchRunner(Protocol):
     ) -> dict[str, Any]: ...
 
 
+class ReadingBatchRunner:
+    """Run one topic batch through the note-only reader route.
+
+    Sequence: discover candidates -> iterate ``ReaderProductionService.process``
+    per candidate -> surface receipts whose ``status`` is published / failed
+    (needs_review counts as not-published).  The returned dict matches the
+    ``ProductionBatchRunner`` contract consumed by ``TopicRunService``:
+    ``candidate_ids`` / ``receipts`` / ``discovery_succeeded``.
+    """
+
+    def __init__(self, candidate_finder: Any, reader_service: Any) -> None:
+        self.candidate_finder = candidate_finder
+        self.reader_service = reader_service
+
+    def run(
+        self,
+        *,
+        run_id: str,
+        topic: str,
+        domain: str,
+        limit: int,
+        window_start: datetime | None,
+        window_end: datetime,
+    ) -> dict[str, Any]:
+        try:
+            candidates = self.candidate_finder.discover(
+                topic=topic,
+                domain=domain,
+                limit=min(limit, MAX_INITIAL_RUN_LIMIT),
+                window_start=window_start,
+                window_end=window_end,
+            )
+        except Exception:
+            return {"candidate_ids": [], "receipts": [], "discovery_succeeded": False}
+        receipts = []
+        for candidate in candidates:
+            try:
+                receipts.append(self.reader_service.process(candidate))
+            except Exception:
+                receipts.append(
+                    {
+                        "source_id": candidate.source_id,
+                        "status": "failed",
+                        "receipt_status": "failed",
+                    }
+                )
+        return {
+            "candidate_ids": [candidate.source_id for candidate in candidates],
+            "receipts": receipts,
+            "discovery_succeeded": True,
+        }
+
+
 class LangGraphProductionRunner:
-    """Narrow adapter that keeps LangGraph outside the topic domain model."""
+    """LEGACY — drives the retired ``build_production_graph`` bundle path.
+
+    Not on the note-only main chain.  Use ``ReadingBatchRunner`` instead.
+    Kept for scheduling/topic tests; stop wiring it into new entry points.
+    """
 
     def __init__(self, graph: Any) -> None:
         self.graph = graph

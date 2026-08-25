@@ -96,8 +96,7 @@ class ReaderProduction:
     def note_asset_markdown(note: str, candidate: PaperCandidate, receipt: Any) -> str:
         """Minimal schema-v1 asset: the reader's note is the knowledge body."""
         version = getattr(receipt, "completed_at", None) or getattr(receipt, "started_at", None) or "manual"
-        status = getattr(receipt, "status", "failed")
-        pub = "published" if status not in {"failed", "needs_review"} else "needs_review"
+        pub = _receipt_publication(receipt)
         return f"""---
 knowledge_id: "kp:arxiv:{candidate.source_id}"
 knowledge_version: "{version}"
@@ -128,6 +127,27 @@ class ReaderVaultConfig:
     vault_root: Path
 
 
+def _receipt_publication(receipt: Any) -> str:
+    """Map a ReadingReceipt.status onto the PublishedNote publication bucket.
+
+    ReadingReceipt.status is ``completed`` | ``bounded`` | ``failed``.  A
+    completed/bounded read yields a human-readable note and is the canonical
+    knowledge of record; a failed read must not land in the timeline.
+    """
+    status = getattr(receipt, "status", "failed")
+    return "published" if status in {"completed", "bounded"} else "needs_review"
+
+
+def _receipt_bucket(receipt: Any) -> str | None:
+    """published -> ``papers``, needs_review -> ``staging``, else None (no file)."""
+    publication = _receipt_publication(receipt)
+    if publication == "published":
+        return "papers"
+    if publication == "needs_review":
+        return "staging"
+    return None
+
+
 def _safe_version(value: str) -> str:
     return re.sub(r"[^A-Za-z0-9._-]", "-", value)
 
@@ -147,14 +167,12 @@ class ReaderNotePublisher:
     def publish(self, candidate: PaperCandidate, note: str, receipt: Any) -> Path | None:
         """Write the schema-v1 note to the vault, routed by receipt status.
 
-        published    -> knowledge/papers/<source_id>/<version>.md  (canonical)
-        needs_review -> knowledge/staging/<source_id>/<version>.md (not in timeline)
-        failed       -> no file written; returns None
+        completed/bounded -> knowledge/papers/<source_id>/<version>.md  (canonical)
+        failed            -> knowledge/staging/<source_id>/<version>.md (not in timeline)
         """
         markdown = ReaderProduction.note_asset_markdown(note, candidate, receipt)
         version = getattr(receipt, "completed_at", None) or getattr(receipt, "started_at", None) or "manual"
-        status = getattr(receipt, "status", "failed")
-        bucket = "papers" if status == "published" else ("staging" if status == "needs_review" else None)
+        bucket = _receipt_bucket(receipt)
         if bucket is None:
             return None
         directory = self.vault_root / bucket / candidate.source_id
@@ -174,12 +192,14 @@ class ReaderProductionService:
     def process(self, candidate: PaperCandidate) -> dict[str, Any]:
         result = self.reader.read(candidate)
         path = self.publisher.publish(candidate, result.draft.markdown, result.receipt)
-        status = result.receipt.status
+        publication = _receipt_publication(result.receipt)
         return {
             "source_id": candidate.source_id,
-            "receipt_status": status,
+            "receipt_status": result.receipt.status,
+            "publication_status": publication,
+            "status": publication,
             "stop_reason": result.receipt.stop_reason,
             "note_chars": len(result.draft.markdown.strip()),
-            "bucket": "papers" if status == "published" else ("staging" if status == "needs_review" else None),
+            "bucket": _receipt_bucket(result.receipt),
             "published_path": str(path) if path else None,
         }
