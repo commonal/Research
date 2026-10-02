@@ -12,6 +12,22 @@ from hashlib import sha256
 from pathlib import Path
 from typing import Any, Literal, Mapping, Sequence
 import json
+import re
+
+
+_CONTENT_ADDRESS = re.compile(r"^(?:urn:)?sha256:[0-9a-fA-F]{64}$")
+
+
+def is_source_identity(value: str) -> bool:
+    """True for a locatable source identity: an HTTP(S) URL or a sha256
+    content address (``sha256:<hex>`` / ``urn:sha256:<hex>``).
+
+    Uploaded papers often carry no HTTP source; their stable content-address
+    identity keeps the note resolvable by the knowledge reader.
+    """
+    return bool(value) and (
+        value.startswith(("https://", "http://")) or _CONTENT_ADDRESS.match(value) is not None
+    )
 
 
 ClaimType = Literal["source_fact", "agent_inference", "reading_question"]
@@ -32,7 +48,7 @@ ReadingSectionName = Literal[
     "limitations",
     "reproduction",
 ]
-EvidenceLevel = Literal["abstract_only", "full_text_text", "full_text_multimodal"]
+EvidenceLevel = Literal["abstract_only", "full_text_text", "full_text_multimodal", "source_linked_unverified"]
 PublicationStatus = Literal["draft", "needs_review", "published", "superseded", "rejected"]
 ProvenanceStatus = Literal["complete", "legacy_missing_provenance"]
 
@@ -136,6 +152,7 @@ class KnowledgeAsset:
     schema_version: int = 1
     provenance_file: str | None = None
     provenance_sha256: str | None = None
+    rag_eligible: bool = True
 
     @classmethod
     def from_markdown(cls, path: Path) -> "KnowledgeAsset":
@@ -154,16 +171,21 @@ class KnowledgeAsset:
         if missing:
             raise KnowledgeAssetError("Missing required front matter: " + ", ".join(missing))
         source_urls = metadata["source_urls"]
-        if not isinstance(source_urls, list) or not all(
-            isinstance(url, str) and url.startswith(("https://", "http://")) for url in source_urls
+        if not isinstance(source_urls, list) or not source_urls or not all(
+            isinstance(url, str) and is_source_identity(url) for url in source_urls
         ):
-            raise KnowledgeAssetError("source_urls must be a non-empty list of HTTP(S) URLs.")
+            raise KnowledgeAssetError("source_urls must be a non-empty list of HTTP(S) URLs or sha256 content-addresses.")
         status = metadata["publication_status"]
         level = metadata["evidence_level"]
         if status not in {"draft", "needs_review", "published", "superseded", "rejected"}:
             raise KnowledgeAssetError("publication_status is invalid.")
-        if level not in {"abstract_only", "full_text_text", "full_text_multimodal"}:
+        if level not in {"abstract_only", "full_text_text", "full_text_multimodal", "source_linked_unverified"}:
             raise KnowledgeAssetError("evidence_level is invalid.")
+        rag_eligible = metadata.get("rag_eligible", level != "source_linked_unverified")
+        if not isinstance(rag_eligible, bool):
+            raise KnowledgeAssetError("rag_eligible must be a boolean.")
+        if level == "source_linked_unverified" and rag_eligible:
+            raise KnowledgeAssetError("Unverified source-linked knowledge cannot be RAG eligible.")
         expected_hash = sha256(body.encode("utf-8")).hexdigest()
         supplied_hash = metadata.get("content_sha256")
         if supplied_hash is not None and supplied_hash != expected_hash:
@@ -189,6 +211,7 @@ class KnowledgeAsset:
             schema_version=schema_version,
             provenance_file=provenance_file,
             provenance_sha256=provenance_hash,
+            rag_eligible=rag_eligible,
         )
 
 
@@ -291,7 +314,7 @@ class KnowledgeBundle:
 
     @property
     def answer_eligible(self) -> bool:
-        return self.provenance_status == "complete"
+        return self.provenance_status == "complete" and self.asset.rag_eligible
 
     @classmethod
     def from_markdown(cls, path: Path) -> "KnowledgeBundle":

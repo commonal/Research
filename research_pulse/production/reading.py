@@ -11,7 +11,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, Literal, Mapping, Protocol, Sequence
+from typing import Any, Callable, Collection, Literal, Mapping, Protocol, Sequence
 import base64
 import ast
 import html as html_module
@@ -34,6 +34,21 @@ READING_PROMPT_VERSION = "full-paper-v2"
 
 
 @dataclass(frozen=True)
+class MaterialSourceLocator:
+    """Durable locator back to the material representation used for this block."""
+
+    source_kind: str
+    locator: str
+
+    def __post_init__(self) -> None:
+        if not self.source_kind.strip() or not self.locator.strip():
+            raise ValueError("MaterialSourceLocator requires source kind and locator.")
+
+    def to_dict(self) -> dict[str, str]:
+        return {"source_kind": self.source_kind, "locator": self.locator}
+
+
+@dataclass(frozen=True)
 class PaperIRBlock:
     block_id: str
     kind: str
@@ -48,6 +63,10 @@ class PaperIRBlock:
     parse_status: str = "available"
     facets: tuple[Facet, ...] = ()
     references: tuple[str, ...] = ()
+    source_locators: tuple[MaterialSourceLocator, ...] = ()
+    page_start: int | None = None
+    page_end: int | None = None
+    bbox: tuple[float, float, float, float] | None = None
 
     def __post_init__(self) -> None:
         if not self.block_id.strip() or not self.text.strip():
@@ -80,6 +99,10 @@ class PaperIRBlock:
             "parse_status": self.parse_status,
             "facets": list(self.facets),
             "references": list(self.references),
+            "source_locators": [source.to_dict() for source in self.source_locators],
+            "page_start": self.page_start,
+            "page_end": self.page_end,
+            "bbox": list(self.bbox) if self.bbox is not None else None,
         }
 
 
@@ -138,6 +161,13 @@ class CanonicalPaperIR:
                 table_html=getattr(block, "table_html", None), image_path=getattr(block, "image_path", None),
                 safe_image=bool(getattr(block, "image_path", None)) and getattr(block, "parse_status", "available") == "available",
                 parse_status=str(getattr(block, "parse_status", "available")), facets=facets,
+                source_locators=tuple(
+                    MaterialSourceLocator(str(source.parser), str(source.locator))
+                    for source in (getattr(block, "sources", ()) or ())
+                ),
+                page_start=getattr(block, "page_start", None),
+                page_end=getattr(block, "page_end", None),
+                bbox=getattr(block, "bbox", None),
             ))
         return cls(source_id=source_id, title=title, blocks=tuple(converted), source_url=source_url)
 
@@ -344,10 +374,25 @@ class ReadingIntent:
 
 
 @dataclass(frozen=True)
+class EvidenceLink:
+    """A writer-declared relation between one note sentence and source blocks."""
+
+    sentence: str
+    source_block_ids: tuple[str, ...]
+
+    def __post_init__(self) -> None:
+        if not self.sentence.strip() or not self.source_block_ids:
+            raise ValueError("EvidenceLink requires a sentence and source block IDs.")
+        if len(self.source_block_ids) != len(set(self.source_block_ids)):
+            raise ValueError("EvidenceLink source block IDs must be unique.")
+
+
+@dataclass(frozen=True)
 class ReadingDraft:
     markdown: str
     unresolved_boundaries: tuple[str, ...] = ()
     source_fact_ids: tuple[str, ...] = ()
+    evidence_links: tuple[EvidenceLink, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -589,6 +634,7 @@ class ReadingReceipt:
     length_observation: int | None = None
     unsupported_writer_claims: tuple[str, ...] = ()
     provider_failures: tuple[Mapping[str, Any], ...] = ()
+    evidence_level: str = "full_text_text"
 
 
 @dataclass(frozen=True)
@@ -900,13 +946,15 @@ class DeepSeekPaperReadingModel:
                 "instruction": (
                     "Write one fluent, human-readable Chinese paper note from the supplied plan and validated reading state. Return exactly one structured section for every supplied SectionExplanationContract, preserving each section_id exactly once and in contract order; translate the visible heading into natural Chinese. "
                     "Treat preservation_contract as the complete dynamic allow-list: preserve every eligible fact and exact numeric token, retain supplied named mechanism labels when present (a Chinese explanation may follow) and do not translate away the original label on first use, keep every experiment metric attached to its setup/comparison and result context, and state conclusion boundaries and limitations without overclaiming. For every high/medium material_unknown, explicitly preserve its anchor_terms on first mention and say what the paper leaves unknown; never silently turn an unknown into a fact. "
-                    "Define formula symbols only from definition_neighborhoods or validated source facts; keep table metrics attached to their original labels, columns, and values. Explain every inline asset in its ledger-assigned section, using only its validated visual interpretation for pixel details; reference and omit assets need no pixel description. Describe inline figures in prose and never emit Markdown image links, block IDs, asset IDs, local paths, or placeholder URLs because the Renderer owns image placement. "
-                    "When an allow-listed table is used, preserve its relevant row labels, compared conditions, counts, percentages, and changes rather than summarizing away exact values. Omit unsupported definitions and claims rather than guessing. Return JSON exactly as {title: string, sections: [{section_id: string, heading: string, markdown: string}]}; section markdown must not contain another heading. Do not return an empty field, evidence handles, raw excerpts, provider payloads, or trace fields."
+                    "Define formula symbols only from definition_neighborhoods or validated source facts. When an allow-listed table is used, render it as a Markdown pipe table (| … | rows with a header separator row) preserving its header labels, compared conditions, counts, percentages, and changes instead of collapsing the rows into prose. Explain every inline asset in its ledger-assigned section, using only its validated visual interpretation for pixel details; reference and omit assets need no pixel description. Describe inline figures in prose and never emit Markdown image links, block IDs, asset IDs, local paths, or placeholder URLs because the Renderer owns image placement. "
+                    "Render every allow-listed table as a Markdown pipe table and every supported equation as Markdown math; never drop a supplied row label, compared condition, count, percentage, or change into prose. Omit unsupported definitions and claims rather than guessing. "
+                    "After each important source-backed sentence about an exact number, comparison, mechanism, contribution, experiment conclusion, or limitation, append an internal marker like {{evidence:block-1}} or {{evidence:block-1,block-2}} using only exact source_block_ids supplied by the preservation contract. The marker binds only the immediately preceding sentence and is removed before publication. Never invent or translate an ID. "
+                    "Return JSON exactly as {title: string, sections: [{section_id: string, heading: string, markdown: string}]}; section markdown must not contain another heading. Do not return an empty field, raw excerpts, provider payloads, or trace fields; source block IDs may appear only inside the internal evidence markers."
                 ),
                 "preservation_contract": _dynamic_writer_constraint_payload(value),
                 "plan": compact_plan,
                 "return_json_with_sections": {"title": "Chinese note title", "sections": [{"section_id": "exact contract section_id", "heading": "natural Chinese heading", "markdown": "section prose without a heading"}]},
-                "do_not_emit_block_ids": True,
+                "evidence_marker_contract": "{{evidence:exact-source-block-id[,exact-source-block-id]}}",
             }, ensure_ascii=False),
         )
         expected_section_ids = tuple(
@@ -955,7 +1003,7 @@ class DeepSeekPaperReadingModel:
                 "instruction": (
                     "Return only minimal section_patches for the affected sections; do not return or rewrite the complete note. "
                     "Return exactly one section_patch per missing obligation, in the same order as missing_obligations; each patch must contain exactly one obligation_id. "
-                    "Each patch must name one exact existing Markdown heading from the supplied note in after_heading and provide only prose to append in append_markdown. Use only supplied source facts, definition neighborhoods, table rows, and visual interpretations; do not invent evidence, numbers, labels, or pixel details. "
+                    "Each patch must name one exact existing Markdown heading from the supplied note in after_heading and provide only prose to append in append_markdown. Use only supplied source facts, definition neighborhoods, table rows, and visual interpretations; render any supplied table rows as a Markdown pipe table and any supplied equation as Markdown math; do not invent evidence, numbers, labels, or pixel details. "
                     "For a material_unknown obligation, explicitly say that the supplied detail is unknown, unspecified, or not established by the paper; do not turn it into a source fact. "
                     "Preserve each material_unknown anchor_term exactly once on first mention so the repaired boundary remains auditable across translation. "
                     "For a must_preserve_fact obligation, preserve every exact_numeric_token with its supplied condition, comparison, metric, and statement meaning. "
@@ -1009,7 +1057,7 @@ class DeepSeekPaperReadingModel:
             if not path.is_file():
                 raise FileNotFoundError(path)
             content = [{"type": "text", "text": prompt}, {"type": "image_url", "image_url": {"url": "data:image/png;base64," + base64.b64encode(path.read_bytes()).decode("ascii")}}]
-        attempts = 2 if operation == "full_paper_read" and image is None else 1
+        attempts = 2 if operation in {"full_paper_read", "traceable_note_write", "traceable_note_repair", "finding_read"} and image is None else 1
         for attempt in range(attempts):
             if image is None:
                 self.text_call_count += 1
@@ -1031,7 +1079,7 @@ class DeepSeekPaperReadingModel:
                     "response_format": {"type": "json_object"},
                     "thinking": {"type": "disabled"},
                     "temperature": 0.1,
-                    "max_tokens": 12_000 if operation == "full_paper_read" else (8_192 if operation == "note_write" else 4_096),
+                    "max_tokens": 12_000 if operation in ("full_paper_read", "evidence_gate", "blind_reader") else (8_192 if operation in ("note_write", "pedagogical_note_write", "traceable_note_plan_method", "traceable_note_plan_experiments", "traceable_note_write", "traceable_note_repair", "finding_read") else 4_096),
                     "stream": False,
                 }).encode(),
                 headers={"Authorization": f"Bearer {self._api_key}", "Content-Type": "application/json"},
@@ -1075,6 +1123,15 @@ class DeepSeekPaperReadingModel:
             return {**parsed, "_resolved_model": str(actual)}
         raise AssertionError("Provider retry loop exhausted without a result.")
 
+    def call_json(self, operation: str, model: str, prompt: str, image: str | None = None) -> Mapping[str, Any]:
+        """Public passthrough to the provider (same retry/JSON handling as _json_call).
+
+        Used by the pedagogical pipeline adapters (S1/S2/S5) so they share the
+        exact retry, JSON-fence-stripping, and resolved-model bookkeeping without
+        reaching into the private method.
+        """
+        return self._json_call(operation, model, prompt, image=image)
+
 
 @dataclass(frozen=True)
 class DeterministicReadingModel:
@@ -1093,6 +1150,44 @@ class DeterministicReadingModel:
 
     def interpret_visual(self, request: VisualReadRequest) -> str:
         return f"视觉对象 {request.block.block_id} 对当前目标的关系仍需结合正文核对。"
+
+
+def _writer_claim_degradations(degradations: Sequence[str]) -> tuple[str, ...]:
+    """Keep the legacy Writer-claim receipt field semantically narrow."""
+
+    return tuple(
+        item
+        for item in degradations
+        if item.startswith(("unsupported_writer_claim:", "unexpressed_obligation:"))
+    )
+
+
+def _blocks_publication(degradations: Sequence[str]) -> bool:
+    """Whether collected degradations should block publication.
+
+    Almost every degradation is a warning, recorded in ``degradations`` but
+    never routing the note to staging:
+
+    * ``blind_review:*`` — non-deterministic LLM semantic judge, a quality
+      signal not a gate.
+    * ``unexpressed_obligation:*`` — the note omitted a deterministic coverage
+      obligation (a number/term, inline figure explanation, or unresolved
+      unknown).  The draft is still a faithful human prompt and should be
+      visible even if a detail was not preserved.
+    * ``unsupported_writer_claim:*`` — the writer appeared to invent a symbol,
+      table, metric, or asset link.  The guarded pipeline already *strips* the
+      offending sentence from the markdown (see ``_write_and_validate_note``),
+      so the published note is clean; the claim is only recorded as a warning.
+      A real-world read (e.g. Mamba) routinely trips these heuristics on
+      cross-table/body numbers, so blocking the whole note on one is harmful.
+
+    Hard blocks are deliberately narrow: an empty Writer result has nothing to
+    publish, while an ``invalid_evidence_link:*`` means the note claims a
+    source binding that cannot be resolved against the canonical paper.
+    """
+    return "empty_writer_output" in degradations or any(
+        item.startswith("invalid_evidence_link:") for item in degradations
+    )
 
 
 class PaperReader:
@@ -1528,8 +1623,25 @@ class PaperReader:
                     coverage_ledger=coverage_ledger,
                 )
                 degradations.extend(rejected_claims)
+                markdown, evidence_links, invalid_evidence_ids = _extract_evidence_links(
+                    markdown,
+                    canonical_paper_ir.block_by_id,
+                )
+                degradations.extend(
+                    f"invalid_evidence_link:{block_id}" for block_id in invalid_evidence_ids
+                )
+                degradations.extend(
+                    f"missing_evidence_link:numeric:{','.join(tokens)}"
+                    for tokens in _unlinked_source_numeric_sentences(
+                        markdown,
+                        evidence_links,
+                        paper_model.source_facts,
+                    )
+                )
                 blind_review_status, blind_review_failures, blind_review_calls = (
-                    self._blind_review_note(markdown, paper_model, coverage_ledger) if not rejected_claims else ("not_run", (), 0)
+                    self._blind_review_note(markdown, paper_model, coverage_ledger)
+                    if not rejected_claims and not invalid_evidence_ids
+                    else ("not_run", (), 0)
                 )
                 if blind_review_failures:
                     degradations.extend(f"blind_review:{section_id}" for section_id in blind_review_failures)
@@ -1537,10 +1649,14 @@ class PaperReader:
                 completed = datetime.now(timezone.utc).isoformat()
                 image_count, image_bytes = _receipt_image_usage(canonical_paper_ir, full_visual_decisions, paper_model.visual_interpretations)
                 source_fact_ids = tuple(fact.fact_id for fact in paper_model.source_facts)
-                draft = ReadingDraft(markdown=markdown, source_fact_ids=source_fact_ids)
+                draft = ReadingDraft(
+                    markdown=markdown,
+                    source_fact_ids=source_fact_ids,
+                    evidence_links=evidence_links,
+                )
                 receipt = ReadingReceipt(
                     source_id=candidate.source_id,
-                    status="failed" if degradations else "completed",
+                    status="failed" if _blocks_publication(degradations) else "completed",
                     text_model=getattr(self.model, "text_model", type(self.model).__name__),
                     vision_model=getattr(self.model, "vision_model", None),
                     strategy="full_paper",
@@ -1574,7 +1690,7 @@ class PaperReader:
                     asset_decisions={item.asset_id: item.decision for item in asset_plan.decisions},
                     asset_decision_counts=_asset_decision_counts(asset_plan),
                     length_observation=len(markdown),
-                    unsupported_writer_claims=tuple(degradations),
+                    unsupported_writer_claims=_writer_claim_degradations(degradations),
                     provider_failures=tuple(getattr(self.model, "provider_failures", ())),
                 )
                 trace = ReadingTrace(
@@ -1740,6 +1856,28 @@ class PaperReader:
         else:
             markdown = self._write_note(candidate, final_map, records, current_questions)
             blind_review_status, blind_review_failures, blind_review_calls = "not_run", (), 0
+        markdown, evidence_links, invalid_evidence_ids = _extract_evidence_links(
+            markdown,
+            canonical_paper_ir.block_by_id,
+        )
+        degradations.extend(
+            f"invalid_evidence_link:{block_id}" for block_id in invalid_evidence_ids
+        )
+        evidence_source_facts = tuple({
+            fact.fact_id: fact
+            for fact in (
+                *((paper_model.source_facts) if paper_model is not None else ()),
+                *(fact for record in records for fact in record.source_facts),
+            )
+        }.values())
+        degradations.extend(
+            f"missing_evidence_link:numeric:{','.join(tokens)}"
+            for tokens in _unlinked_source_numeric_sentences(
+                markdown,
+                evidence_links,
+                evidence_source_facts,
+            )
+        )
         markdown = _strip_section_markers(markdown)
         paper_fact_ids = [fact.fact_id for fact in paper_model.source_facts] if paper_model is not None else []
         record_fact_ids = [fact.fact_id for record in records for fact in record.source_facts]
@@ -1747,7 +1885,12 @@ class PaperReader:
         unresolved_boundaries = tuple(item.statement for item in paper_model.material_unknowns) if paper_model is not None else ()
         if records:
             unresolved_boundaries += tuple(item.statement for item in records[-1].unknowns)
-        draft = ReadingDraft(markdown=markdown, unresolved_boundaries=unresolved_boundaries, source_fact_ids=source_fact_ids)
+        draft = ReadingDraft(
+            markdown=markdown,
+            unresolved_boundaries=unresolved_boundaries,
+            source_fact_ids=source_fact_ids,
+            evidence_links=evidence_links,
+        )
         completed = datetime.now(timezone.utc).isoformat()
         target_visuals = tuple(item for record in records for item in record.visual_interpretations)
         image_count, image_bytes = _receipt_image_usage(
@@ -1757,7 +1900,7 @@ class PaperReader:
         )
         receipt = ReadingReceipt(
             source_id=candidate.source_id,
-            status="failed" if degradations else ("completed" if stop_reason == "coverage" else "bounded"),
+            status="failed" if _blocks_publication(degradations) else ("completed" if stop_reason == "coverage" else "bounded"),
             text_model=getattr(self.model, "text_model", type(self.model).__name__),
             vision_model=getattr(self.model, "vision_model", None),
             strategy="target_fallback",
@@ -1786,7 +1929,7 @@ class PaperReader:
             asset_decisions={item.asset_id: item.decision for item in fallback_asset_plan.decisions},
             asset_decision_counts=_asset_decision_counts(fallback_asset_plan),
             length_observation=len(markdown),
-            unsupported_writer_claims=tuple(degradations),
+            unsupported_writer_claims=_writer_claim_degradations(degradations),
             provider_failures=tuple(getattr(self.model, "provider_failures", ())),
         )
         trace = ReadingTrace(
@@ -3097,14 +3240,30 @@ def _unexpressed_writer_obligations(
     for unknown in paper_model.material_unknowns:
         if unknown.priority == "low":
             continue
-        anchors = unknown.anchor_terms or _infer_unknown_anchor_terms(unknown.statement)
+        # Match on the declared anchors AND the statement-derived ones.  The
+        # note is written in the reading language (often Chinese) while the
+        # declared anchors are usually the paper's language (often English), so
+        # a faithful translated uncertain mention must still count as expressed
+        # instead of being re-appended verbatim by the repair pass.
+        declared_anchors = unknown.anchor_terms or ()
+        statement_anchors = _infer_unknown_anchor_terms(unknown.statement)
+        anchors = tuple(dict.fromkeys((*declared_anchors, *statement_anchors)))
         obligation_id = f"unknown:{unknown.unknown_id}"
         if obligation_id in satisfied:
             continue
         explicit_named_anchors = tuple(
             anchor
             for anchor in unknown.anchor_terms
-            if unknown.anchor_terms_declared and re.fullmatch(r"[A-Za-z][A-Za-z0-9_.-]{2,}", anchor)
+            if (
+                unknown.anchor_terms_declared
+                and re.fullmatch(r"[A-Za-z][A-Za-z0-9_.-]{2,}", anchor)
+                # A stable named entity to preserve verbatim is a plain word
+                # (e.g. "broker"); hyphenated compound phrases and all-caps
+                # acronyms ("chain-of-thought", "SFT") are generally translated
+                # by a faithful Chinese note, so requiring them verbatim only
+                # produces duplicate repairs.
+                and not re.search(r"[-_]|^[A-Z]{2,}$", anchor)
+            )
         )
         local_prose = owned_prose(obligation_id)
         missing_named_anchor = any(anchor.casefold() not in local_prose.casefold() for anchor in explicit_named_anchors)
@@ -3252,6 +3411,49 @@ def _has_local_uncertainty(markdown: str, anchors: Sequence[str]) -> bool:
         "scaling": ("scaling", "扩展", "规模"),
         "engineering": ("engineering", "工程"),
         "challenges": ("challenge", "挑战"),
+        # ML / paper-domain translation-stable terms (the note is written in
+        # the reading language, usually Chinese, while anchors are usually the
+        # paper's language, often English).  Extending the alias map keeps a
+        # faithful translated uncertain mention from being misread as "silently
+        # omitted" and re-appended by the repair pass as a near-duplicate.
+        "model": ("model", "模型"),
+        "models": ("model", "模型"),
+        "training": ("training", "训练"),
+        "trained": ("trained", "训练"),
+        "hyperparameter": ("hyperparameter", "超参数"),
+        "hyperparameters": ("hyperparameter", "超参数"),
+        "corpus": ("corpus", "语料"),
+        "data": ("data", "数据"),
+        "dataset": ("dataset", "数据集"),
+        "pipeline": ("pipeline", "管线", "流程"),
+        "processing": ("processing", "处理"),
+        "expert": ("expert", "专家"),
+        "generator": ("generator", "生成器"),
+        "generation": ("generation", "生成"),
+        "preference": ("preference", "偏好"),
+        "strategy": ("strategy", "策略"),
+        "inference": ("inference", "推理"),
+        "hardware": ("hardware", "硬件"),
+        "document": ("document", "文档"),
+        "packing": ("packing", "打包"),
+        "architecture": ("architecture", "架构"),
+        "parameters": ("parameter", "参数"),
+        "parameter": ("parameter", "参数"),
+        "activation": ("activation", "激活"),
+        "token": ("token", "词元", "分词"),
+        "benchmark": ("benchmark", "基准"),
+        "dynamic": ("dynamic", "动态"),
+        "redundancy": ("redundancy", "冗余"),
+        "routing": ("routing", "路由"),
+        "label": ("label", "标签"),
+        "labels": ("label", "标签"),
+        "task": ("task", "任务"),
+        "prompt": ("prompt", "提示"),
+        "decoding": ("decoding", "解码"),
+        "gradient": ("gradient", "梯度"),
+        "budget": ("budget", "预算"),
+        "latency": ("latency", "延迟"),
+        "throughput": ("throughput", "吞吐"),
     }
     ignored = {"the", "a", "an", "of", "for", "and", "or", "exact", "specific", "method"}
     uncertain_segments = tuple(
@@ -3351,6 +3553,101 @@ def _markdown_heading_for_contract(markdown: str, heading: str, ordinal: int, co
 
 def _strip_section_markers(markdown: str) -> str:
     return re.sub(r"(?m)^\s*<!--\s*rp-section:[^>]+-->\s*\r?\n?", "", markdown)
+
+
+_EVIDENCE_LINK_MARKER = re.compile(r"\{\{evidence:([^{}]+)\}\}")
+
+
+def _extract_evidence_links(
+    markdown: str,
+    allowed_source_block_ids: Collection[str],
+) -> tuple[str, tuple[EvidenceLink, ...], tuple[str, ...]]:
+    """Move valid Writer evidence markers into a non-rendered draft sidecar."""
+
+    links: list[EvidenceLink] = []
+    invalid_source_block_ids: list[str] = []
+    allowed = set(allowed_source_block_ids)
+    for marker in _EVIDENCE_LINK_MARKER.finditer(markdown):
+        source_block_ids = tuple(dict.fromkeys(
+            value.strip() for value in marker.group(1).split(",") if value.strip()
+        ))
+        if not source_block_ids:
+            continue
+        unknown_ids = tuple(block_id for block_id in source_block_ids if block_id not in allowed)
+        if unknown_ids:
+            invalid_source_block_ids.extend(unknown_ids)
+            continue
+        prefix = markdown[:marker.start()].rstrip()
+        if not prefix:
+            continue
+        search_prefix = prefix[:-1] if prefix[-1] in ".。!?！？" else prefix
+        boundaries = tuple(
+            match.end()
+            for match in re.finditer(r"\.(?=\s)|[。!?！？]|\n", search_prefix)
+        )
+        sentence_start = boundaries[-1] if boundaries else 0
+        sentence = prefix[sentence_start:].strip()
+        if sentence:
+            links.append(EvidenceLink(sentence=sentence, source_block_ids=source_block_ids))
+    return (
+        _EVIDENCE_LINK_MARKER.sub("", markdown),
+        tuple(links),
+        tuple(dict.fromkeys(invalid_source_block_ids)),
+    )
+
+
+def _unlinked_source_numeric_sentences(
+    markdown: str,
+    evidence_links: Sequence[EvidenceLink],
+    source_facts: Sequence[SourceFact],
+) -> tuple[tuple[str, ...], ...]:
+    """Report prose sentences that reuse grounded numbers without a link.
+
+    This first observational slice deliberately ignores tables and display
+    math.  It also considers only numbers already present in validated source
+    facts, avoiding generic warnings for headings, years, and list numbering.
+    """
+
+    grounded_numbers = {
+        re.sub(r"[\s,]+", "", token)
+        for fact in source_facts
+        for token in re.findall(r"(?<![A-Za-z])\d[\d,]*(?:\.\d+)?%?", fact.statement)
+    }
+    if not grounded_numbers:
+        return ()
+    linked_sentences = {
+        re.sub(r"\s+", " ", link.sentence).strip()
+        for link in evidence_links
+    }
+    missing: list[tuple[str, ...]] = []
+    in_fence = False
+    for raw_line in markdown.splitlines():
+        line = raw_line.strip()
+        if line.startswith("```"):
+            in_fence = not in_fence
+            continue
+        if (
+            in_fence
+            or not line
+            or line.startswith("#")
+            or line.startswith("|")
+            or line.startswith("$$")
+            or line.startswith("![")
+        ):
+            continue
+        prose_line = re.sub(r"\$[^$\n]+\$", "", line)
+        for sentence in re.split(r"(?<=[。！？])|(?<=[.!?])(?=\s+)", prose_line):
+            normalized_sentence = re.sub(r"\s+", " ", sentence).strip()
+            if not normalized_sentence or normalized_sentence in linked_sentences:
+                continue
+            tokens = tuple(dict.fromkeys(
+                token
+                for token in re.findall(r"(?<![A-Za-z])\d[\d,]*(?:\.\d+)?%?", normalized_sentence)
+                if re.sub(r"[\s,]+", "", token) in grounded_numbers
+            ))
+            if tokens:
+                missing.append(tokens)
+    return tuple(dict.fromkeys(missing))
 
 
 def _apply_writer_section_patches(

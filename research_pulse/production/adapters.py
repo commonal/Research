@@ -43,7 +43,7 @@ from research_pulse.production.evidence import (
     SupplementalEvidenceResolver,
     classify_with_optional_supplement,
 )
-from research_pulse.production.normalized import NormalizedBlock, load_normalized_jsonl
+from research_pulse.production.normalized import NormalizedBlock, load_complete_normalized
 from research_pulse.production.publication import ManifestStore, PublicationManifest, validate_manifest_bundle
 from research_pulse.rag.contracts import ResearchRAG
 from worker.discover import PaperCandidate as WorkerCandidate
@@ -202,8 +202,14 @@ class NormalizedSourceParser:
     supplemental_resolver: SupplementalEvidenceResolver | None = None
 
     def parse(self, candidate: PaperCandidate) -> SourceMaterial:
-        blocks_path = self.normalized_root / candidate.source_id / "normalized" / "blocks.jsonl"
-        blocks = load_normalized_jsonl(blocks_path)
+        source_root = self.normalized_root / candidate.source_id
+        normalized_dir = source_root / "normalized"
+        legacy_image_root = source_root / "mineru" / "source" / "auto"
+        blocks = load_complete_normalized(
+            normalized_dir,
+            expected_source_id=candidate.source_id,
+            image_roots=(normalized_dir, legacy_image_root),
+        )
         prefix = f"normalized:{candidate.source_id}:"
         if any(not block.block_id.startswith(prefix) for block in blocks):
             raise ValueError("Normalized blocks do not belong to the requested source_id.")
@@ -211,7 +217,7 @@ class NormalizedSourceParser:
             source_id=candidate.source_id,
             source_url=candidate.source_url,
             blocks=blocks,
-            image_root=self.normalized_root / candidate.source_id / "mineru" / "source" / "auto",
+            image_root=(normalized_dir, legacy_image_root),
             supplemental_resolver=self.supplemental_resolver,
         )
 
@@ -315,7 +321,7 @@ def normalized_blocks_to_material(
     source_id: str,
     source_url: str,
     blocks: tuple[NormalizedBlock, ...],
-    image_root: Path | None = None,
+    image_root: Path | Sequence[Path] | None = None,
     supplemental_resolver: SupplementalEvidenceResolver | None = None,
 ) -> SourceMaterial:
     """Adapt parser-neutral normalized blocks to the existing evidence gate."""
@@ -332,7 +338,7 @@ def normalized_blocks_to_material(
             kind=block.kind,
             text=block.text,
             source_url=source_url,
-            parser="normalized:mineru+docling",
+            parser=_normalized_parser_label(block),
             parse_status=block.parse_status,
             locator_completeness=locator,
             section_path=block.section_path or ("Overview",),
@@ -376,18 +382,27 @@ def normalized_blocks_to_material(
     )
 
 
-def _safe_image_source(image_root: Path | None, image_path: str | None) -> Path | None:
+def _normalized_parser_label(block: NormalizedBlock) -> str:
+    parsers = tuple(dict.fromkeys(source.parser for source in block.sources))
+    return "normalized:" + "+".join(parsers)
+
+
+def _safe_image_source(image_root: Path | Sequence[Path] | None, image_path: str | None) -> Path | None:
     """Resolve a normalized image only when it stays inside the source cache."""
 
     if image_root is None or not image_path or not image_path.strip():
         return None
-    root = image_root.resolve()
-    candidate = (root / image_path).resolve()
-    try:
-        candidate.relative_to(root)
-    except ValueError:
-        return None
-    return candidate if candidate.is_file() else None
+    roots = (image_root,) if isinstance(image_root, Path) else tuple(image_root)
+    for raw_root in roots:
+        root = raw_root.resolve()
+        candidate = (root / image_path).resolve()
+        try:
+            candidate.relative_to(root)
+        except ValueError:
+            continue
+        if candidate.is_file():
+            return candidate
+    return None
 
 
 def _markdown_sections(markdown: str) -> list[tuple[str, str]]:

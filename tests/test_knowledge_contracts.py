@@ -48,6 +48,27 @@ class KnowledgeContractTests(TestCase):
         with self.assertRaisesRegex(KnowledgeAssetError, "JSON"):
             split_front_matter("---\ntitle: unquoted\n---\nbody")
 
+    def test_content_address_source_is_accepted(self) -> None:
+        digest = "a" * 64
+        markdown = (
+            "---\n"
+            'knowledge_id: "kp:test"\n'
+            'knowledge_version: "2026-09-02T00:00:00+00:00"\n'
+            'publication_status: "published"\n'
+            'evidence_level: "source_linked_unverified"\n'
+            f'source_urls: ["urn:sha256:{digest}"]\n'
+            'domain: "test"\n'
+            'title: "Test"\n'
+            "---\n"
+            "# hello\n"
+        )
+        path = _write_fixture(markdown)
+        try:
+            asset = KnowledgeAsset.from_markdown(path)
+            self.assertEqual(asset.source_urls, (f"urn:sha256:{digest}",))
+        finally:
+            path.unlink(missing_ok=True)
+
     def test_evidence_hit_keeps_asset_version_and_anchor(self) -> None:
         request = SearchRequest(query="长期记忆", domain="llm_agent_memory")
         hit = EvidenceHit(

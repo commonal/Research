@@ -13,7 +13,6 @@ import os
 
 from dotenv import load_dotenv
 from fastapi.testclient import TestClient
-from langgraph.checkpoint.memory import MemorySaver
 
 from research_pulse.acceptance.models import (
     BrowserStatus,
@@ -24,12 +23,7 @@ from research_pulse.acceptance.models import (
     StageReceipt,
     StageStatus,
 )
-from research_pulse.acceptance.orchestration import (
-    CostBoundary,
-    RejectingSupplementer,
-    SingleCandidateFinder,
-    invoke_production_once,
-)
+from research_pulse.acceptance.orchestration import CostBoundary
 from research_pulse.acceptance.preflight import (
     AcceptanceConfig,
     EnvironmentBlocked,
@@ -43,32 +37,17 @@ from research_pulse.acceptance.preflight import (
 from research_pulse.acceptance.receipt import AcceptanceReceiptWriter, ReceiptPaths, safe_error
 from research_pulse.acceptance.validation import (
     AcceptanceValidationError,
-    BundleVerification,
-    ChatVerification,
-    RetrievalVerification,
+    NoteVerification,
     build_acceptance_app,
     snapshot_knowledge,
     snapshot_raw_material,
-    verify_new_bundle,
     verify_no_new_raw_material,
-    verify_postgres_retrieval,
-    verify_reading_api,
-    verify_scoped_chat,
+    verify_note_published,
+    verify_note_readable,
 )
-from research_pulse.production.adapters import (
-    ArxivCandidateFinder,
-    DeepSeekEntailmentJudge,
-    DeepSeekStructuredExtractor,
-    DEFAULT_DEEPSEEK_TEXT_MODEL,
-    DoclingSourceParser,
-    FilesystemKnowledgePublisher,
-    PostgresProcessedPaperRegistry,
-)
-from research_pulse.production.pipeline import PaperCandidate, ProductionService
-from research_pulse.rag.answer import DeepSeekGroundedAnswerGenerator
-from research_pulse.rag.postgres import PostgresResearchRAG
-from research_pulse.workflows.interactive import InteractiveGraphDependencies, build_interactive_graph
-from research_pulse.workflows.production import ProductionGraphDependencies, build_production_graph
+from research_pulse.production.adapters import ArxivCandidateFinder, PostgresProcessedPaperRegistry
+from research_pulse.production.pipeline import PaperCandidate
+from research_pulse.reader_production import ReaderConfig, ReaderProductionService
 
 
 DEFAULT_TOPIC = "LLM agent memory"
@@ -82,7 +61,7 @@ class RealAcceptanceDependencies:
     preflight: PreflightDependencies
     registry: Any
     rag: Any
-    production_graph_factory: Callable[[PaperCandidate], Any]
+    production_service_factory: Callable[[PaperCandidate], Any]
     interactive_graph_factory: Callable[[], Any]
 
 
@@ -250,26 +229,18 @@ def run_real_acceptance(
 
     production_started, production_clock = _utc_now(), perf_counter()
     try:
-        graph = deps.production_graph_factory(candidate)
-        result = invoke_production_once(
-            graph,
-            run_id=active_run_id,
-            topic=config.topic,
-            domain=config.domain,
-            candidate=candidate,
-            budget=budget,
-        )
+        service = deps.production_service_factory(candidate)
+        production_receipt = service.process(candidate)
         verify_no_new_raw_material(before=before_raw, roots=managed_roots)
-        production_receipt = result["receipts"][0]
-        if production_receipt.get("status") != "published":
-            reason = production_receipt.get("reason") or production_receipt.get("status") or "unknown"
+        if production_receipt.get("publication_status") != "published":
+            reason = production_receipt.get("stop_reason") or production_receipt.get("receipt_status") or "unknown"
             raise AcceptanceValidationError(f"Production did not publish the selected paper: {reason}")
         stages.pass_stage(
             "production",
             started=production_started,
             clock=production_clock,
             metrics={"published_count": 1},
-        )
+        )[truncated]
     except Exception as error:
         code, summary = safe_error(error, stage="production")
         stages.fail_stage(
@@ -291,45 +262,28 @@ def run_real_acceptance(
             source_id=source_id,
         )
 
-    bundle_started, bundle_clock = _utc_now(), perf_counter()
+    publication_started, publication_clock = _utc_now(), perf_counter()
     try:
-        bundle_verification = verify_new_bundle(
+        note_verification = verify_note_published(
             vault_root=config.vault_root,
             before=before_knowledge,
             source_id=source_id,
         )
         verify_no_new_raw_material(before=before_raw, roots=managed_roots)
         stages.pass_stage(
-            "bundle_verify",
-            started=bundle_started,
-            clock=bundle_clock,
+            "publication_verify",
+            started=publication_started,
+            clock=publication_clock,
             metrics={
-                "source_fact_count": len(bundle_verification.source_fact_ids),
-                "source_anchor_count": len(bundle_verification.source_anchor_ids),
+                "note_char_count": len(note_verification.markdown),
+                "markdown_relative_path": note_verification.markdown_relative_path,
             },
         )
     except Exception as error:
         return _failed_result(
             writer, stages, config, active_run_id, started_at, source_id,
-            "bundle_verify", error, bundle_started, bundle_clock,
+            "publication_verify", error, publication_started, publication_clock,
             run_kind=deps.run_kind,
-        )
-
-    retrieval_started, retrieval_clock = _utc_now(), perf_counter()
-    try:
-        retrieval_verification = verify_postgres_retrieval(deps.rag, bundle_verification)
-        stages.pass_stage(
-            "retrieval_verify",
-            started=retrieval_started,
-            clock=retrieval_clock,
-            metrics={"chunk_count": len(retrieval_verification.chunk_ids)},
-        )
-    except Exception as error:
-        return _failed_result(
-            writer, stages, config, active_run_id, started_at, source_id,
-            "retrieval_verify", error, retrieval_started, retrieval_clock,
-            run_kind=deps.run_kind,
-            bundle_verification=bundle_verification,
         )
 
     api_started, api_clock = _utc_now(), perf_counter()
@@ -339,27 +293,20 @@ def run_real_acceptance(
             vault_root=config.vault_root,
         )
         with TestClient(app) as client:
-            verify_reading_api(client, bundle_verification.bundle)
-            chat_verification = verify_scoped_chat(
-                client,
-                query=question,
-                bundle=bundle_verification.bundle,
-                budget=budget,
-            )
+            api_verification = verify_note_readable(client, note_verification)
         verify_no_new_raw_material(before=before_raw, roots=managed_roots)
         stages.pass_stage(
-            "api_chat_verify",
+            "api_readable_verify",
             started=api_started,
             clock=api_clock,
-            metrics={"citation_count": len(chat_verification.citation_ids), "question_count": 1},
+            metrics={"list_status": api_verification.list_status, "detail_status": api_verification.detail_status},
         )
     except Exception as error:
         return _failed_result(
             writer, stages, config, active_run_id, started_at, source_id,
-            "api_chat_verify", error, api_started, api_clock,
+            "api_readable_verify", error, api_started, api_clock,
             run_kind=deps.run_kind,
-            bundle_verification=bundle_verification,
-            retrieval_verification=retrieval_verification,
+            note_verification=note_verification,
         )
 
     return _write_result(
@@ -371,9 +318,7 @@ def run_real_acceptance(
         final_status=FinalStatus.PASSED,
         run_kind=deps.run_kind,
         source_id=source_id,
-        bundle_verification=bundle_verification,
-        retrieval_verification=retrieval_verification,
-        chat_verification=chat_verification,
+        note_verification=note_verification,
     )
 
 
@@ -381,41 +326,24 @@ def build_real_dependencies(config: AcceptanceConfig) -> RealAcceptanceDependenc
     finder = ArxivCandidateFinder()
     database_url = config.database_url or ""
     registry = PostgresProcessedPaperRegistry(database_url)
-    rag = PostgresResearchRAG(database_url)
 
     def production_factory(candidate: PaperCandidate):
         if not config.deepseek_api_key:
             raise RuntimeError("DeepSeek is not configured after preflight.")
-        rag.initialize()
         registry.initialize()
-        service = ProductionService(
-            parser=DoclingSourceParser(),
-            extractor=DeepSeekStructuredExtractor.from_credentials(model=config.model, api_key=config.deepseek_api_key),
-            publisher=FilesystemKnowledgePublisher(config.vault_root, rag, registry),
-            processed_registry=registry,
-            entailment_judge=DeepSeekEntailmentJudge(
-                config.model,
-                config.deepseek_api_key,
-                request_timeout_seconds=float(os.getenv("DEEPSEEK_JUDGE_TIMEOUT_SECONDS", "90")),
-            ),
-            run_deadline_seconds=float(os.getenv("DEEPSEEK_RUN_DEADLINE_SECONDS", "420")),
+        reader_config = ReaderConfig(
+            normalized_root=config.normalized_root,
+            language=config.language,
+            depth=config.depth,
         )
-        return build_production_graph(
-            ProductionGraphDependencies(SingleCandidateFinder(candidate), service),
-            checkpointer=MemorySaver(),
-        )
+        return ReaderProductionService(reader_config, config.vault_root)
 
     def interactive_factory():
-        if not config.deepseek_api_key:
-            raise RuntimeError("DeepSeek is not configured after preflight.")
-        return build_interactive_graph(
-            InteractiveGraphDependencies(
-                rag=rag,
-                supplementer=RejectingSupplementer(),
-                answer_generator=DeepSeekGroundedAnswerGenerator(config.deepseek_api_key, config.model),
-                minimum_hits=2,
-            ),
-            checkpointer=MemorySaver(),
+        # Note-only acceptance needs only the knowledge reading surface (timeline
+        # and detail).  There is no RAG/chat in the note-only architecture.
+        return build_acceptance_app(
+            interactive_graph=None,
+            vault_root=config.vault_root,
         )
 
     return RealAcceptanceDependencies(
@@ -427,8 +355,8 @@ def build_real_dependencies(config: AcceptanceConfig) -> RealAcceptanceDependenc
             candidate_finder=finder,
         ),
         registry=registry,
-        rag=rag,
-        production_graph_factory=production_factory,
+        rag=None,
+        production_service_factory=production_factory,
         interactive_graph_factory=interactive_factory,
     )
 
@@ -479,8 +407,7 @@ def _failed_result(
     stage_clock: float,
     *,
     run_kind: RunKind,
-    bundle_verification: BundleVerification | None = None,
-    retrieval_verification: RetrievalVerification | None = None,
+    note_verification: NoteVerification | None = None,
 ) -> AcceptanceRunResult:
     code, summary = safe_error(error, stage=stage)
     stages.fail_stage(
@@ -500,8 +427,7 @@ def _failed_result(
         final_status=FinalStatus.ACCEPTANCE_FAILED,
         run_kind=run_kind,
         source_id=source_id,
-        bundle_verification=bundle_verification,
-        retrieval_verification=retrieval_verification,
+        note_verification=note_verification,
     )
 
 
@@ -515,11 +441,9 @@ def _write_result(
     final_status: FinalStatus,
     run_kind: RunKind = RunKind.REAL,
     source_id: str | None,
-    bundle_verification: BundleVerification | None = None,
-    retrieval_verification: RetrievalVerification | None = None,
-    chat_verification: ChatVerification | None = None,
+    note_verification: NoteVerification | None = None,
 ) -> AcceptanceRunResult:
-    bundle = bundle_verification.bundle if bundle_verification else None
+    note = note_verification
     receipt = RealPaperAcceptanceReceipt(
         receipt_schema_version=1,
         run_id=run_id,
@@ -531,19 +455,11 @@ def _write_result(
         model=config.model,
         stages=stages.finalize(),
         source_id=source_id,
-        knowledge_id=bundle.asset.knowledge_id if bundle else None,
-        knowledge_version=bundle.asset.knowledge_version if bundle else None,
-        evidence_level=bundle.asset.evidence_level if bundle else None,
-        bundle_markdown_path=bundle_verification.markdown_relative_path if bundle_verification else None,
-        content_sha256=bundle.asset.content_sha256 if bundle else None,
-        provenance_sha256=bundle.asset.provenance_sha256 if bundle else None,
-        manifest_status=bundle_verification.manifest.index_status if bundle_verification else None,
-        claim_ids=bundle_verification.source_fact_ids if bundle_verification else (),
-        source_anchor_ids=bundle_verification.source_anchor_ids if bundle_verification else (),
-        chunk_ids=retrieval_verification.chunk_ids if retrieval_verification else (),
-        citation_ids=chat_verification.citation_ids if chat_verification else (),
-        answer_sha256=chat_verification.answer_sha256 if chat_verification else None,
-        answer_length=chat_verification.answer_length if chat_verification else None,
+        knowledge_id=note.knowledge_id if note else None,
+        knowledge_version=note.knowledge_version if note else None,
+        evidence_level="full_text_text",
+        bundle_markdown_path=note.markdown_relative_path if note else None,
+        content_sha256=note.content_sha256 if note else None,
         browser_status=BrowserStatus.PENDING if final_status == FinalStatus.PASSED else BrowserStatus.SKIPPED,
     )
     paths = writer.write(receipt)

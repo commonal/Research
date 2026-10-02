@@ -46,23 +46,20 @@ class _Registry:
         return False
 
 
-class _Graph:
+class _ReaderService:
     def __init__(self, candidate: PaperCandidate, status: str) -> None:
         self.candidate = candidate
         self.status = status
         self.calls = 0
 
-    def invoke(self, state, config):
+    def process(self, candidate):
         self.calls += 1
         return {
-            "candidate_ids": [self.candidate.source_id],
-            "receipts": [
-                {
-                    "source_id": self.candidate.source_id,
-                    "status": self.status,
-                    "reason": "provider failed api_key=must-not-leak" if self.status != "published" else None,
-                }
-            ],
+            "source_id": self.candidate.source_id,
+            "receipt_status": self.status,
+            "publication_status": self.status,
+            "stop_reason": "provider failed api_key=must-not-leak" if self.status != "published" else None,
+            "bucket": "papers" if self.status == "published" else ("staging" if self.status == "needs_review" else None),
         }
 
 
@@ -105,7 +102,7 @@ class RealAcceptanceRunnerTests(TestCase):
             receipt_root=self.receipts,
         )
 
-    def _deps(self, *, finder, database_probe=lambda value: None, graph_factory=None):
+    def _deps(self, *, finder, database_probe=lambda value: None, service_factory=None):
         calls = []
 
         def forbidden_factory(candidate):
@@ -122,7 +119,7 @@ class RealAcceptanceRunnerTests(TestCase):
             ),
             registry=_Registry(),
             rag=object(),
-            production_graph_factory=graph_factory or forbidden_factory,
+            production_service_factory=service_factory or forbidden_factory,
             interactive_graph_factory=lambda: (_ for _ in ()).throw(AssertionError("chat must not run")),
         ), calls
 
@@ -153,14 +150,14 @@ class RealAcceptanceRunnerTests(TestCase):
         self.assertEqual(calls, [])
 
     def test_failed_production_is_sanitized_and_never_retried(self) -> None:
-        graph = _Graph(_candidate(), "failed")
-        deps, _ = self._deps(finder=_Finder([_candidate()]), graph_factory=lambda candidate: graph)
+        service = _ReaderService(_candidate(), "failed")
+        deps, _ = self._deps(finder=_Finder([_candidate()]), service_factory=lambda candidate: service)
 
         result = run_real_acceptance(self._config(), deps, run_id="failed-run")
 
         self.assertEqual(result.receipt.final_status, FinalStatus.ACCEPTANCE_FAILED)
         self.assertEqual(result.receipt.stages[2].status, StageStatus.FAILED)
-        self.assertEqual(graph.calls, 1)
+        self.assertEqual(service.calls, 1)
         self.assertNotIn("must-not-leak", result.paths.json.read_text(encoding="utf-8"))
 
 
@@ -179,7 +176,6 @@ class RealAcceptanceCliTests(TestCase):
             stages=stage_sequence(
                 (
                     StageStatus.BLOCKED,
-                    StageStatus.SKIPPED,
                     StageStatus.SKIPPED,
                     StageStatus.SKIPPED,
                     StageStatus.SKIPPED,
@@ -203,8 +199,8 @@ class RealAcceptanceCliTests(TestCase):
         with patch.dict(
             os.environ,
             {
-                "DATABASE_URL": "postgresql://user:password@localhost/db",
-                "DEEPSEEK_API_KEY": "sk-1234567890123456",
+                "DATABASE_URL": "postgresql://user:***@localhost/db",
+                "DEEPSEEK_API_KEY": "«redacted:sk-…»",
                 "DEEPSEEK_MODEL": "deepseek-chat",
             },
             clear=False,

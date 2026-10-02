@@ -87,4 +87,6 @@ class NormalizedExtractionTests(TestCase):
             self.assertEqual(len(blocks_path.read_text(encoding="utf-8").splitlines()), 1)
             manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
             self.assertEqual(manifest["block_count"], 1)
+            self.assertIs(manifest["complete"], True)
+            self.assertEqual(list((root / "normalized").glob("*.tmp")), [])
             self.assertNotIn("A statement.", manifest_path.read_text(encoding="utf-8"))

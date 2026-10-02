@@ -136,6 +136,57 @@ class V2WriterContractTests(TestCase):
         self.assertEqual((model.repair_calls, result.receipt.writer_repair_calls), (0, 0))
         self.assertFalse(result.receipt.unsupported_writer_claims)
 
+    def test_ml_terms_translated_unknown_does_not_trigger_duplicate_repair(self) -> None:
+        # Regression: a medium material unknown whose declared anchors are
+        # English/paper-language ("reward model") but whose uncertain mention in
+        # the note is a faithful Chinese translation must NOT be re-appended
+        # verbatim by the repair pass (which previously produced duplicate
+        # sentences in real reads like DeepSeek-V3).
+        class MLUnknownWriterModel(_FullPaperWriterModel):
+            def __init__(self) -> None:
+                self.repair_calls = 0
+
+            def read_full_paper(self, request: object) -> dict:
+                response = super().read_full_paper(request)
+                response["material_unknowns"] = [
+                    {
+                        "statement": "The specific hyperparameters for the reward model training are not given.",
+                        "priority": "medium",
+                        "anchor_terms": ["reward model", "preference data", "chain-of-thought"],
+                    }
+                ]
+                return response
+
+            def repair_writer(self, request: object) -> dict:
+                self.repair_calls += 1
+                raise AssertionError("The translated Chinese unknown is already present.")
+
+        model = MLUnknownWriterModel()
+        result = PaperReader(
+            model,
+            writer=lambda payload: (
+                "# 论文精读\n\n"
+                "代理会越权，安全成功率从 64% 提升到 98%。"
+                "奖励模型训练的确切超参数在论文中尚未公开，偏好数据与思维链的具体处理也未给出。\n"
+            ),
+        ).read(
+            PaperCandidate("paper-writer", "Writer", "https://example.com/writer", "agents"),
+            CanonicalPaperIR(
+                "paper-writer",
+                "Writer",
+                (
+                    PaperIRBlock("problem", "paragraph", "Introduction", "Agents exercise authority beyond the task.", 1),
+                    PaperIRBlock("method", "paragraph", "Method", "A broker audits actions before and after execution.", 2),
+                    PaperIRBlock("result", "paragraph", "Results", "Safe success rises from 64% to 98%.", 3),
+                    PaperIRBlock("limit", "paragraph", "Limitations", "The method does not replace sandboxing.", 4),
+                ),
+            ),
+            ReadingIntent(),
+        )
+
+        self.assertEqual((model.repair_calls, result.receipt.writer_repair_calls), (0, 0))
+        self.assertFalse(result.receipt.unsupported_writer_claims)
+
     def test_writer_repair_applies_only_returned_section_patch(self) -> None:
         class PatchingWriterModel(_FullPaperWriterModel):
             def __init__(self) -> None:

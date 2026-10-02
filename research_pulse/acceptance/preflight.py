@@ -31,6 +31,7 @@ class AcceptanceConfig:
     vault_root: Path
     receipt_root: Path
     candidate_pool_size: int = 5
+    normalized_root: Path = Path(".")
 
     def __post_init__(self) -> None:
         if not self.model.strip() or not self.topic.strip() or not self.domain.strip():

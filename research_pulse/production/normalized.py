@@ -19,7 +19,7 @@ import argparse
 
 
 NormalizedKind = Literal["text", "formula", "table", "figure", "caption"]
-Alignment = Literal["aligned", "mineru_only", "docling_only"]
+Alignment = Literal["aligned", "mineru_only", "docling_only", "html_native"]
 ParseStatus = Literal["available", "degraded", "unparsed"]
 
 
@@ -27,7 +27,7 @@ ParseStatus = Literal["available", "degraded", "unparsed"]
 class SourceRef:
     """A locator into an immutable parser output file."""
 
-    parser: Literal["mineru", "docling"]
+    parser: Literal["mineru", "mineru_api", "docling", "arxiv_html"]
     locator: str
 
     def to_dict(self) -> dict[str, str]:
@@ -61,7 +61,7 @@ class NormalizedBlock:
             raise ValueError("NormalizedBlock requires a non-empty ID and text.")
         if self.kind not in {"text", "formula", "table", "figure", "caption"}:
             raise ValueError("NormalizedBlock kind is invalid.")
-        if self.alignment not in {"aligned", "mineru_only", "docling_only"}:
+        if self.alignment not in {"aligned", "mineru_only", "docling_only", "html_native"}:
             raise ValueError("NormalizedBlock alignment is invalid.")
         if not self.sources:
             raise ValueError("NormalizedBlock requires at least one parser source.")
@@ -99,7 +99,7 @@ class NormalizedBlock:
         sources = tuple(
             SourceRef(parser=item["parser"], locator=item["locator"])
             for item in payload.get("sources", [])
-            if isinstance(item, dict) and item.get("parser") in {"mineru", "docling"} and isinstance(item.get("locator"), str)
+            if isinstance(item, dict) and item.get("parser") in {"mineru", "mineru_api", "docling", "arxiv_html"} and isinstance(item.get("locator"), str)
         )
         bbox = payload.get("bbox")
         return cls(
@@ -130,25 +130,28 @@ class NormalizedDocument:
     blocks: tuple[NormalizedBlock, ...]
     input_hashes: Mapping[str, str] = field(default_factory=dict)
     warnings: tuple[str, ...] = ()
+    parser: str | None = None
+    parser_version: str | None = None
 
     @property
     def alignment_counts(self) -> dict[str, int]:
-        return {key: sum(block.alignment == key for block in self.blocks) for key in ("aligned", "mineru_only", "docling_only")}
+        return {
+            key: sum(block.alignment == key for block in self.blocks)
+            for key in ("aligned", "mineru_only", "docling_only", "html_native")
+        }
 
     @property
     def kind_counts(self) -> dict[str, int]:
         return {kind: sum(block.kind == kind for block in self.blocks) for kind in ("text", "formula", "table", "figure", "caption")}
 
     def write(self, output_dir: Path) -> tuple[Path, Path]:
-        """Write JSONL blocks and a metadata-only manifest atomically enough for inspection."""
+        """Commit JSONL blocks first and the completeness manifest last."""
 
         output_dir.mkdir(parents=True, exist_ok=True)
         blocks_path = output_dir / "blocks.jsonl"
         manifest_path = output_dir / "manifest.json"
-        blocks_path.write_text(
-            "".join(json.dumps(block.to_dict(), ensure_ascii=False, sort_keys=True) + "\n" for block in self.blocks),
-            encoding="utf-8",
-        )
+        blocks_tmp = output_dir / "blocks.jsonl.tmp"
+        manifest_tmp = output_dir / "manifest.json.tmp"
         manifest = {
             "schema_version": 1,
             "source_id": self.source_id,
@@ -158,9 +161,31 @@ class NormalizedDocument:
             "alignment_counts": self.alignment_counts,
             "kind_counts": self.kind_counts,
             "warnings": list(self.warnings),
+            "complete": True,
             "persistence": "normalized metadata and bounded block projections; raw PDF/parser outputs remain in source cache",
         }
-        manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        if self.parser:
+            manifest["parser"] = self.parser
+        if self.parser_version:
+            manifest["parser_version"] = self.parser_version
+        try:
+            blocks_tmp.write_text(
+                "".join(json.dumps(block.to_dict(), ensure_ascii=False, sort_keys=True) + "\n" for block in self.blocks),
+                encoding="utf-8",
+            )
+            manifest_tmp.write_text(
+                json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
+            # The manifest is the commit marker.  Removing an older marker
+            # before replacing blocks makes every interrupted update invalid
+            # instead of allowing a stale manifest to bless new partial data.
+            manifest_path.unlink(missing_ok=True)
+            blocks_tmp.replace(blocks_path)
+            manifest_tmp.replace(manifest_path)
+        finally:
+            blocks_tmp.unlink(missing_ok=True)
+            manifest_tmp.unlink(missing_ok=True)
         return blocks_path, manifest_path
 
 
@@ -226,6 +251,106 @@ def load_normalized_jsonl(path: Path) -> tuple[NormalizedBlock, ...]:
     if not blocks:
         raise ValueError("Normalized JSONL contains no blocks.")
     return tuple(blocks)
+
+
+def load_complete_normalized(
+    normalized_dir: Path,
+    *,
+    expected_source_id: str,
+    image_roots: Sequence[Path] = (),
+) -> tuple[NormalizedBlock, ...]:
+    """Load a normalized cache only after its committed manifest is coherent.
+
+    Schema-v1 caches created before the explicit ``complete`` marker remain
+    readable when their manifest, block count, source identity, input hashes,
+    and referenced images are all intact.  A present ``complete=false`` marker
+    is always rejected.
+    """
+
+    normalized_dir = Path(normalized_dir)
+    blocks_path = normalized_dir / "blocks.jsonl"
+    manifest_path = normalized_dir / "manifest.json"
+    if not blocks_path.is_file():
+        raise ValueError("normalized blocks.jsonl is missing")
+    if not manifest_path.is_file():
+        raise ValueError("normalized manifest.json is missing")
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as error:
+        raise ValueError("normalized manifest.json is invalid JSON") from error
+    if not isinstance(manifest, dict):
+        raise ValueError("normalized manifest.json must be an object")
+    if manifest.get("complete") is False:
+        raise ValueError("normalized manifest marks the cache incomplete")
+    if manifest.get("source_id") != expected_source_id:
+        raise ValueError("normalized manifest source_id does not match the requested paper")
+    input_hashes = manifest.get("input_hashes")
+    if not isinstance(input_hashes, dict):
+        raise ValueError("normalized manifest input_hashes are incomplete")
+    manifest_parser = manifest.get("parser")
+    if manifest_parser == "arxiv_html":
+        required_hashes = ("arxiv_html",)
+    elif manifest_parser == "mineru_api":
+        required_hashes = ("mineru_content_list",)
+    else:
+        required_hashes = ("mineru_content_list", "docling_document")
+    if not all(
+        isinstance(input_hashes.get(name), str) and input_hashes[name].strip()
+        for name in required_hashes
+    ):
+        raise ValueError("normalized manifest input_hashes are incomplete")
+
+    blocks = load_normalized_jsonl(blocks_path)
+    html_sources_present = any(
+        source.parser == "arxiv_html"
+        for block in blocks
+        for source in block.sources
+    )
+    if manifest_parser == "arxiv_html":
+        parser_version = manifest.get("parser_version")
+        if not isinstance(parser_version, str) or not parser_version.strip():
+            raise ValueError("normalized HTML manifest parser_version is missing")
+        page_path = normalized_dir / "page.html"
+        if not page_path.is_file():
+            raise ValueError("normalized HTML source page.html is missing")
+        if _file_sha256(page_path) != input_hashes["arxiv_html"]:
+            raise ValueError("normalized HTML source hash does not match manifest")
+        if any(
+            not block.sources or any(source.parser != "arxiv_html" for source in block.sources)
+            for block in blocks
+        ):
+            raise ValueError("normalized HTML block sources do not match manifest parser")
+    elif manifest_parser == "mineru_api":
+        parser_version = manifest.get("parser_version")
+        if not isinstance(parser_version, str) or not parser_version.strip():
+            raise ValueError("normalized MinerU API manifest parser_version is missing")
+        content_path = normalized_dir / "content_list.json"
+        if not content_path.is_file():
+            raise ValueError("normalized MinerU API content_list.json is missing")
+        if _file_sha256(content_path) != input_hashes["mineru_content_list"]:
+            raise ValueError("normalized MinerU API content hash does not match manifest")
+        if any(
+            not block.sources or any(source.parser != "mineru_api" for source in block.sources)
+            for block in blocks
+        ):
+            raise ValueError("normalized MinerU API block sources do not match manifest parser")
+    elif html_sources_present:
+        raise ValueError("normalized block sources do not match manifest parser")
+    declared_count = manifest.get("block_count")
+    if not isinstance(declared_count, int) or declared_count != len(blocks):
+        raise ValueError(
+            f"normalized manifest block_count={declared_count!r} does not match {len(blocks)} blocks"
+        )
+    roots = tuple(Path(root).resolve() for root in image_roots) or (normalized_dir.resolve(),)
+    for block in blocks:
+        if not block.image_path:
+            continue
+        relative = Path(block.image_path)
+        if relative.is_absolute() or ".." in relative.parts:
+            raise ValueError(f"normalized image_path is unsafe: {block.image_path!r}")
+        if not any((root / relative).is_file() for root in roots):
+            raise ValueError(f"normalized referenced image is missing: {block.image_path}")
+    return blocks
 
 
 def _read_json(path: Path) -> Any:

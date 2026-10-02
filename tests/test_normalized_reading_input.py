@@ -4,6 +4,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 import json
+import hashlib
 from datetime import UTC, datetime
 
 from research_pulse.production.adapters import NormalizedSourceParser
@@ -23,6 +24,16 @@ class NormalizedReadingInputTests(TestCase):
             domain="security",
             published_at=datetime(2026, 8, 18, tzinfo=UTC),
         )
+
+    @staticmethod
+    def _write_manifest(root: Path, *, block_count: int) -> None:
+        (root / "manifest.json").write_text(json.dumps({
+            "schema_version": 1,
+            "source_id": "2608.18351v1",
+            "block_count": block_count,
+            "input_hashes": {"mineru_content_list": "fixture-m", "docling_document": "fixture-d"},
+            "complete": True,
+        }), encoding="utf-8")
 
     def test_parser_reads_cache_and_preserves_multimodal_quality_boundaries(self) -> None:
         with self._temporary_directory() as directory:
@@ -50,6 +61,7 @@ class NormalizedReadingInputTests(TestCase):
                 ),
             ]
             (root / "blocks.jsonl").write_text("".join(json.dumps(block.to_dict(), ensure_ascii=False) + "\n" for block in blocks), encoding="utf-8")
+            self._write_manifest(root, block_count=len(blocks))
 
             material = NormalizedSourceParser(Path(directory) / "experiments").parse(self._candidate())
 
@@ -69,5 +81,41 @@ class NormalizedReadingInputTests(TestCase):
                 "sources": [{"parser": "mineru", "locator": "x"}], "alignment": "mineru_only",
                 "parse_status": "available", "confidence": 0.5,
             }) + "\n", encoding="utf-8")
+            self._write_manifest(root, block_count=1)
             with self.assertRaisesRegex(ValueError, "source_id"):
                 NormalizedSourceParser(Path(directory) / "experiments").parse(self._candidate())
+
+    def test_html_source_identity_is_not_relabelled_as_dual_parser(self) -> None:
+        with self._temporary_directory() as directory:
+            root = Path(directory) / "experiments" / "2608.18351v1" / "normalized"
+            root.mkdir(parents=True)
+            block = NormalizedBlock(
+                "normalized:2608.18351v1:text:html",
+                "text",
+                "Native HTML paragraph.",
+                section_path=("Method",),
+                sources=(SourceRef("arxiv_html", "page.html#S2.p1"),),
+                alignment="aligned",
+                confidence=1.0,
+            )
+            (root / "blocks.jsonl").write_text(
+                json.dumps(block.to_dict(), ensure_ascii=False) + "\n",
+                encoding="utf-8",
+            )
+            (root / "manifest.json").write_text(json.dumps({
+                "schema_version": "normalized-blocks-v1",
+                "source_id": "2608.18351v1",
+                "parser": "arxiv_html",
+                "parser_version": "arxiv-html-v1",
+                "block_count": 1,
+                "input_hashes": {"arxiv_html": hashlib.sha256(b"fixture-html").hexdigest()},
+                "complete": True,
+            }), encoding="utf-8")
+            (root / "page.html").write_text("fixture-html", encoding="utf-8")
+
+            material = NormalizedSourceParser(Path(directory) / "experiments").parse(self._candidate())
+
+            self.assertEqual(
+                material.evidence_candidates[block.block_id].parser,
+                "normalized:arxiv_html",
+            )

@@ -81,7 +81,7 @@ class _QualityModel:
 
 
 class ReadingQualityPolicyTests(TestCase):
-    def test_blind_reader_failure_blocks_completion_without_rewriting_the_note(self) -> None:
+    def test_blind_reader_failure_is_a_signal_does_not_block_completion(self) -> None:
         class BlindFailingModel(_QualityModel):
             def review_note(self, request: dict) -> dict:
                 return {
@@ -92,8 +92,11 @@ class ReadingQualityPolicyTests(TestCase):
         markdown = "# 一句话\n\n$R = S - P$。\n"
         result = PaperReader(BlindFailingModel(), writer=lambda value: markdown).read(_candidate(), _paper(), ReadingIntent())
 
+        # Blind review is a non-deterministic semantic signal, not a hard gate:
+        # a faithful note that passes the deterministic coverage / anti-fabrication
+        # gate still publishes.  The blind-review failure is recorded, not blocking.
         self.assertEqual(result.draft.markdown, markdown)
-        self.assertEqual((result.receipt.status, result.receipt.blind_review_status), ("failed", "failed"))
+        self.assertEqual((result.receipt.status, result.receipt.blind_review_status), ("completed", "failed"))
         self.assertEqual(
             result.receipt.blind_review_failures,
             (
@@ -221,7 +224,7 @@ class ReadingQualityPolicyTests(TestCase):
         self.assertNotIn("## 结果", model.review_requests[0]["markdown"])
         self.assertNotIn("## 问题", model.review_requests[1]["markdown"])
 
-    def test_blind_reader_cannot_pass_with_a_quote_absent_from_the_note(self) -> None:
+    def test_blind_reader_quote_absent_fails_the_signal_but_does_not_block(self) -> None:
         class FabricatingBlindModel(_QualityModel):
             def review_note(self, request: dict) -> dict:
                 return {
@@ -238,7 +241,9 @@ class ReadingQualityPolicyTests(TestCase):
             writer=lambda value: "# 笔记\n\n$R = S - P$。\n",
         ).read(_candidate(), _paper(), ReadingIntent())
 
-        self.assertEqual((result.receipt.status, result.receipt.blind_review_status), ("failed", "failed"))
+        # The quote-absent blind assessment is a signal failure; the deterministic
+        # gate still passes, so the note publishes.
+        self.assertEqual((result.receipt.status, result.receipt.blind_review_status), ("completed", "failed"))
         self.assertIn("argument:problem", result.receipt.blind_review_failures)
 
     def test_empty_writer_output_is_a_provider_failure_not_a_placeholder_note(self) -> None:
@@ -264,15 +269,39 @@ class ReadingQualityPolicyTests(TestCase):
         self.assertNotIn("rp-section", result.draft.markdown)
         self.assertIn("## 论文主线", result.draft.markdown)
 
-    def test_missing_coverage_obligation_remains_blocking_even_for_short_note(self) -> None:
-        result = PaperReader(_QualityModel(missing_obligation=True), writer=lambda value: "# 看起来完整\n").read(_candidate(), _paper(), ReadingIntent())
-
-        self.assertIn(result.receipt.status, ("bounded", "failed"))
-
-    def test_unsupported_writer_fact_remains_blocking_even_for_short_note(self) -> None:
+    def test_missing_coverage_obligation_is_a_warning_not_a_gate(self) -> None:
+        # Coverage planning is complete, but the writer's short note omits the
+        # formula relation obligation.  An omitted deterministic detail is now a
+        # warning recorded in degradations, not a publication block: a faithful
+        # draft that completed the reading loop is published even if a detail
+        # was not preserved.
         result = PaperReader(_QualityModel(), writer=lambda value: "# 解释\n\nP 表示持久性。\n").read(_candidate(), _paper(), ReadingIntent())
 
-        self.assertIn(result.receipt.status, ("bounded", "failed"))
+        self.assertEqual(result.receipt.status, "completed")
+        self.assertIn("unexpressed_obligation:asset:formula", result.receipt.degradations)
+
+    def test_hard_planning_failure_still_blocks_publication(self) -> None:
+        # A CoverageLedger conflict (no obligations assigned at all) is a
+        # planning failure, not an omitted note detail.  It still blocks.
+        result = PaperReader(_QualityModel(missing_obligation=True), writer=lambda value: "# 看起来完整\n").read(_candidate(), _paper(), ReadingIntent())
+
+        self.assertEqual(result.receipt.status, "failed")
+        self.assertIn("coverage_conflict", result.receipt.degradations)
+
+    def test_only_empty_writer_output_blocks_publication(self) -> None:
+        # Publication blocks only when the writer produced nothing.  Missing
+        # obligations, unsupported/table claims and blind-review flag are all
+        # warnings (the unsupported-claim guards already strip the offending
+        # sentence) and must never route a faithful note to staging.
+        from research_pulse.production.reading import _blocks_publication
+
+        self.assertTrue(_blocks_publication(("empty_writer_output",)))
+        self.assertTrue(_blocks_publication(("empty_writer_output", "unsupported_writer_claim:R")))
+        # Warning-only classes never block.
+        self.assertFalse(_blocks_publication(("unsupported_writer_claim:R",)))
+        self.assertFalse(_blocks_publication(("unexpressed_obligation:asset:formula",)))
+        self.assertFalse(_blocks_publication(("blind_review:main",)))
+        self.assertFalse(_blocks_publication(("unsupported_writer_claim:R", "unexpressed_obligation:fact:f1")))
 
     def test_supported_local_writer_repair_runs_once_for_an_unsupported_claim(self) -> None:
         model = _QualityModel(repair_writer=True)

@@ -10,6 +10,7 @@ from typing import Any, Literal, Protocol, Sequence
 import json
 import re
 
+from research_pulse.knowledge.models import is_source_identity
 from research_pulse.production.pipeline import CandidateReceipt, ExtractedDraft, PaperCandidate
 from research_pulse.production.quality import QualityGateResult
 
@@ -52,8 +53,8 @@ class ReviewDraft:
             raise ReviewDraftError("A review draft needs stable identity fields.")
         if not self.knowledge_version.strip() or not self.title.strip() or not self.domain.strip():
             raise ReviewDraftError("A review draft needs version, title, and domain.")
-        if not self.source_urls or any(not url.startswith(("https://", "http://")) for url in self.source_urls):
-            raise ReviewDraftError("A review draft needs HTTP(S) source URLs.")
+        if not self.source_urls or any(not is_source_identity(url) for url in self.source_urls):
+            raise ReviewDraftError("A review draft needs source URLs or sha256 content-addresses.")
         if self.status not in {"needs_review", "rejected", "published", "expired"}:
             raise ReviewDraftError("Review draft status is invalid.")
         expected = sha256(self.markdown.encode("utf-8")).hexdigest()

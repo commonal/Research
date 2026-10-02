@@ -123,6 +123,60 @@ class _CompleteFullPaperModel:
 
 
 class FullPaperBaselineTests(TestCase):
+    def test_reading_result_preserves_writer_evidence_link_to_source_block(self) -> None:
+        result = PaperReader(
+            _CompleteFullPaperModel(),
+            writer=lambda value: (
+                "# 论文主线\n\n"
+                "Agents exercise authority beyond the task. "
+                "A broker audits actions before and after execution. "
+                "Safe success rises from 64.36% to 98.48%.{{evidence:result}} "
+                "The method does not replace sandboxing.\n"
+            ),
+        ).read(_candidate(), _paper(), ReadingIntent())
+
+        self.assertEqual(
+            tuple((link.sentence, link.source_block_ids) for link in result.draft.evidence_links),
+            (("Safe success rises from 64.36% to 98.48%.", ("result",)),),
+        )
+        self.assertNotIn("{{evidence:", result.draft.markdown)
+
+    def test_unknown_writer_evidence_id_blocks_reading_result(self) -> None:
+        result = PaperReader(
+            _CompleteFullPaperModel(),
+            writer=lambda value: (
+                "# 论文主线\n\n"
+                "Agents exercise authority beyond the task. "
+                "A broker audits actions before and after execution. "
+                "Safe success rises from 64.36% to 98.48%.{{evidence:missing-source}} "
+                "The method does not replace sandboxing.\n"
+            ),
+        ).read(_candidate(), _paper(), ReadingIntent())
+
+        self.assertEqual(result.receipt.status, "failed")
+        self.assertIn("invalid_evidence_link:missing-source", result.receipt.degradations)
+        self.assertEqual(result.draft.evidence_links, ())
+        self.assertNotIn("{{evidence:", result.draft.markdown)
+
+    def test_unlinked_exact_numeric_sentence_is_reported_without_blocking_publication(self) -> None:
+        result = PaperReader(
+            _CompleteFullPaperModel(),
+            writer=lambda value: (
+                "# 论文主线\n\n"
+                "Agents exercise authority beyond the task. "
+                "A broker audits actions before and after execution. "
+                "Safe success rises from 64.36% to 98.48%. "
+                "The method does not replace sandboxing.\n"
+            ),
+        ).read(_candidate(), _paper(), ReadingIntent())
+
+        self.assertEqual(result.receipt.status, "completed")
+        self.assertIn(
+            "missing_evidence_link:numeric:64.36%,98.48%",
+            result.receipt.degradations,
+        )
+        self.assertEqual(result.draft.evidence_links, ())
+
     def test_provider_short_visual_id_resolves_to_the_unique_canonical_block(self) -> None:
         base = _paper()
         canonical_id = "normalized:paper-b:figure:abc123"
@@ -254,7 +308,7 @@ class FullPaperBaselineTests(TestCase):
         result = PaperReader(
             FormulaModel(),
             note_planner=lambda value: {"sections": [("奖励", "解释奖励设计。")]},
-            writer=lambda value: "# 奖励设计\n\n$R = 0.60S + 0.20E - 0.20P - 0.05U + 0.10H - 0.75B - 0.05F_u - 0.12F_r$。奖励把成功与安全约束结合起来。P 表示持久性。安全成功率从 64.36% 提升到 98.48%。\n",
+            writer=lambda value: "# 奖励设计\n\n$R = 0.60S + 0.20E - 0.20P - 0.05U + 0.10H - 0.75B - 0.05F_u - 0.12F_r$。奖励把成功与安全约束结合起来。P 表示持久性。安全成功率从 64.36% 提升到 98.48%。{{evidence:result}}\n",
         ).read(_candidate(), CanonicalPaperIR(paper.source_id, paper.title, blocks), ReadingIntent())
 
         self.assertEqual(("P 表示持久性" in result.draft.markdown, result.receipt.degradations), (False, ("unsupported_writer_claim:P",)))
@@ -402,7 +456,7 @@ class FullPaperBaselineTests(TestCase):
         result = PaperReader(
             FormulaModel(),
             note_planner=lambda value: {"sections": [("奖励", "解释各项。")]},
-            writer=lambda value: "# 奖励设计\n\n$R = 0.60S + 0.20E - 0.20P - 0.05U + 0.10H - 0.75B - 0.05F_u - 0.12F_r$。R 是总奖励；S 表示任务成功，E 表示证据充分性，P 衡量超额权限。安全成功率从 64.36% 提升到 98.48%。\n",
+            writer=lambda value: "# 奖励设计\n\n$R = 0.60S + 0.20E - 0.20P - 0.05U + 0.10H - 0.75B - 0.05F_u - 0.12F_r$。R 是总奖励；S 表示任务成功，E 表示证据充分性，P 衡量超额权限。安全成功率从 64.36% 提升到 98.48%。{{evidence:result}}\n",
         ).read(_candidate(), _paper_with_reward_formula(), ReadingIntent())
 
         self.assertIn("R 是总奖励", result.draft.markdown)
@@ -425,7 +479,7 @@ class FullPaperBaselineTests(TestCase):
         result = PaperReader(
             FormulaModel(),
             note_planner=lambda value: {"sections": [("奖励", "解释各项。")]},
-            writer=lambda value: "# 奖励设计\n\n$R = 0.60S + 0.20E - 0.20P - 0.05U + 0.10H - 0.75B - 0.05F_u - 0.12F_r$。R 是总奖励；S 和 E 表示任务目标。安全成功率从 64.36% 提升到 98.48%。\n",
+            writer=lambda value: "# 奖励设计\n\n$R = 0.60S + 0.20E - 0.20P - 0.05U + 0.10H - 0.75B - 0.05F_u - 0.12F_r$。R 是总奖励；S 和 E 表示任务目标。安全成功率从 64.36% 提升到 98.48%。{{evidence:result}}\n",
         ).read(_candidate(), _paper_with_reward_formula(), ReadingIntent())
 
         neighborhood = next(item for item in result.trace.paper_model.definition_neighborhoods if item.object_block_id == "reward-formula")

@@ -11,9 +11,8 @@ FINAL_STAGE_NAMES = (
     "preflight",
     "discovery",
     "production",
-    "bundle_verify",
-    "retrieval_verify",
-    "api_chat_verify",
+    "publication_verify",
+    "api_readable_verify",
     "receipt",
 )
 
