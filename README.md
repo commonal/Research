@@ -111,7 +111,18 @@ cd frontend && npm run test && npm run build
 这部分是**有意写清楚的**，因为一个只说优点的项目不值得信任：
 
 - **基线对比尚未完成。** `evals/baseline/runs/live-pilot` 只记录到 9 个任务中的 1 个（`complete: false`），工作台侧那次运行是 `failed`。评估框架、任务定义和汇总器都已就绪，缺的是完整回执，所以**目前不能声称工作台在质量上优于普通 RAG**。
-- **后端测试当前是红的。** 实测 `python -m pytest tests --ignore=tmp` 的结果是 **910 passed / 10 failed / 14 skipped**。前端 96 个用例全绿。这 10 个失败可稳定复现，根因包括：`research_pulse/acceptance/models.py:227` 的阶段状态校验比部分测试的构造更严格（5 个），以及 `Writer` 修复路径实际被调用 2 次而契约测试期望 1 次（`test_v2_writer_contract.py`）。**这是待修复的真实缺陷，不是环境差异**，检查清单见下文。
+- **后端测试当前是红的。** 实测 `python -m pytest tests --ignore=tmp` 的结果是 **910 passed / 10 failed / 14 skipped**（前端 96 个用例全绿）。逐个定位后的根因分类：
+
+  | 类别 | 数量 | 根因 |
+  |---|---|---|
+  | 真实代码缺陷 | 1 | `acceptance/real_paper.py:373` 引用 `DEFAULT_DEEPSEEK_TEXT_MODEL` 但**从未导入**（定义在 `production/adapters.py:59`）。该 CLI 路径必然 `NameError` |
+  | 真实代码缺陷 | 1 | `Writer` 的 repair 路径实际被调用 **2** 次，而契约测试期望 1 次（`test_v2_writer_contract.py`） |
+  | 测试索引过期 | 1 | 断言指向不再产出的笔记版本；最新笔记已改用另一套小标题结构 |
+  | 测试数据停留在旧契约 | 4 | `acceptance/models.py` 的 `FINAL_STAGE_NAMES` 现为 **6** 段（historical receipts 为 7 段，第 4 段旧名 `bundle_verify`）；测试仍构造 7 元素状态序列，`stage_sequence` 直接 `ValueError` |
+  | 测试未隔离进程环境 | 2 | `test_workbench_web_retrieval.py` 中两个用例在**单独运行该文件时通过**，但在完整套件中失败；未受控变量为进程级 `WEB_SEARCH_PROVIDER`（本地 `.env` 为 `tavily`） |
+  | 测试数据与实现不匹配 | 1 | `test_wrong_source_id_is_rejected` 期望 "does not match"，实现先抛出 "No published note exists for the selected source." |
+
+  **没有一个是测试随机顺序造成的。** 其中 8 个在干净检出下同样为红。
 - **证据抽取的准确率/召回率还没有数字。** 引用定位准确率与证据覆盖率已被列为待建立基线（见 [`docs/resume-readiness.md`](./docs/resume-readiness.md) 第 6 节），指标在首次完整运行前标记为 `UNKNOWN`，**不用估计值填充**。
 - **论文换版本会错位。** provenance 锚定在特定解析版本的块上；arXiv 更新版本后块坐标可能失效。当前的兜底是降级为不可点击标记，而不是自动重定位。
 - **V1 只支持单篇 Anchor Paper。** 允许围绕子问题检索、阅读、引用多篇 supporting papers，但不做多篇平级锚点，也不做开放式领域综述。
