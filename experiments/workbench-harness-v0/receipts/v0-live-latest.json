@@ -1,0 +1,2015 @@
+{
+  "schema_version": "workbench-harness-v0-live-receipt-v1",
+  "created_at": "2026-09-01T03:44:22.995351+00:00",
+  "harness": {
+    "name": "Deep Agents",
+    "package": "deepagents==0.7.11",
+    "profile": "research-pulse-readonly-v0",
+    "general_purpose_subagent": false,
+    "excluded_capabilities": [
+      "write_file",
+      "edit_file",
+      "execute",
+      "task",
+      "publish",
+      "subagent"
+    ]
+  },
+  "model": {
+    "provider": "deepseek",
+    "model": "deepseek-v4-flash"
+  },
+  "backend": "deepagents.backends.StateBackend",
+  "checkpointer": null,
+  "effective_tools": [
+    "search_sources",
+    "read_paper_metadata",
+    "read_managed_blocks",
+    "read_run_status"
+  ],
+  "budget": {
+    "model_rounds": 8,
+    "tool_calls": 16,
+    "block_reads": 24,
+    "wall_seconds": 300,
+    "input_tokens": 40000,
+    "output_tokens": 8000
+  },
+  "runs": [
+    {
+      "run_id": "v0-live-1",
+      "question_id": "q-memory-governance-vs-reranking",
+      "stop_reason": "completed",
+      "events": [
+        {
+          "sequence_no": 1,
+          "event_type": "run_started",
+          "summary": "探索已开始",
+          "stable_ids": {
+            "run_id": "v0-live-1"
+          },
+          "counters": {
+            "model_rounds": 0,
+            "tool_calls": 0,
+            "block_reads": 0,
+            "input_tokens": 0,
+            "output_tokens": 0
+          }
+        },
+        {
+          "sequence_no": 2,
+          "event_type": "tool_started",
+          "summary": "调用只读工具 search_sources",
+          "stable_ids": {
+            "tool_name": "search_sources"
+          },
+          "counters": {
+            "model_rounds": 1,
+            "tool_calls": 1,
+            "block_reads": 0,
+            "input_tokens": 187,
+            "output_tokens": 140
+          }
+        },
+        {
+          "sequence_no": 3,
+          "event_type": "source_discovered",
+          "summary": "发现受管来源",
+          "stable_ids": {
+            "source_id": "2608.21867"
+          },
+          "counters": {
+            "model_rounds": 1,
+            "tool_calls": 1,
+            "block_reads": 0,
+            "input_tokens": 187,
+            "output_tokens": 140
+          }
+        },
+        {
+          "sequence_no": 4,
+          "event_type": "source_discovered",
+          "summary": "发现受管来源",
+          "stable_ids": {
+            "source_id": "2608.22767"
+          },
+          "counters": {
+            "model_rounds": 1,
+            "tool_calls": 1,
+            "block_reads": 0,
+            "input_tokens": 187,
+            "output_tokens": 140
+          }
+        },
+        {
+          "sequence_no": 5,
+          "event_type": "source_discovered",
+          "summary": "发现受管来源",
+          "stable_ids": {
+            "source_id": "2608.23471"
+          },
+          "counters": {
+            "model_rounds": 1,
+            "tool_calls": 1,
+            "block_reads": 0,
+            "input_tokens": 187,
+            "output_tokens": 140
+          }
+        },
+        {
+          "sequence_no": 6,
+          "event_type": "tool_completed",
+          "summary": "只读工具 search_sources 已完成",
+          "stable_ids": {
+            "tool_name": "search_sources"
+          },
+          "counters": {
+            "model_rounds": 1,
+            "tool_calls": 1,
+            "block_reads": 0,
+            "input_tokens": 187,
+            "output_tokens": 140
+          }
+        },
+        {
+          "sequence_no": 7,
+          "event_type": "tool_started",
+          "summary": "调用只读工具 search_sources",
+          "stable_ids": {
+            "tool_name": "search_sources"
+          },
+          "counters": {
+            "model_rounds": 1,
+            "tool_calls": 2,
+            "block_reads": 0,
+            "input_tokens": 187,
+            "output_tokens": 140
+          }
+        },
+        {
+          "sequence_no": 8,
+          "event_type": "source_discovered",
+          "summary": "发现受管来源",
+          "stable_ids": {
+            "source_id": "2608.22767"
+          },
+          "counters": {
+            "model_rounds": 1,
+            "tool_calls": 2,
+            "block_reads": 0,
+            "input_tokens": 187,
+            "output_tokens": 140
+          }
+        },
+        {
+          "sequence_no": 9,
+          "event_type": "source_discovered",
+          "summary": "发现受管来源",
+          "stable_ids": {
+            "source_id": "2608.21867"
+          },
+          "counters": {
+            "model_rounds": 1,
+            "tool_calls": 2,
+            "block_reads": 0,
+            "input_tokens": 187,
+            "output_tokens": 140
+          }
+        },
+        {
+          "sequence_no": 10,
+          "event_type": "source_discovered",
+          "summary": "发现受管来源",
+          "stable_ids": {
+            "source_id": "2608.23471"
+          },
+          "counters": {
+            "model_rounds": 1,
+            "tool_calls": 2,
+            "block_reads": 0,
+            "input_tokens": 187,
+            "output_tokens": 140
+          }
+        },
+        {
+          "sequence_no": 11,
+          "event_type": "tool_completed",
+          "summary": "只读工具 search_sources 已完成",
+          "stable_ids": {
+            "tool_name": "search_sources"
+          },
+          "counters": {
+            "model_rounds": 1,
+            "tool_calls": 2,
+            "block_reads": 0,
+            "input_tokens": 187,
+            "output_tokens": 140
+          }
+        },
+        {
+          "sequence_no": 12,
+          "event_type": "tool_started",
+          "summary": "调用只读工具 read_paper_metadata",
+          "stable_ids": {
+            "tool_name": "read_paper_metadata"
+          },
+          "counters": {
+            "model_rounds": 2,
+            "tool_calls": 3,
+            "block_reads": 0,
+            "input_tokens": 703,
+            "output_tokens": 265
+          }
+        },
+        {
+          "sequence_no": 13,
+          "event_type": "tool_started",
+          "summary": "调用只读工具 read_paper_metadata",
+          "stable_ids": {
+            "tool_name": "read_paper_metadata"
+          },
+          "counters": {
+            "model_rounds": 2,
+            "tool_calls": 4,
+            "block_reads": 0,
+            "input_tokens": 703,
+            "output_tokens": 265
+          }
+        },
+        {
+          "sequence_no": 14,
+          "event_type": "tool_completed",
+          "summary": "只读工具 read_paper_metadata 已完成",
+          "stable_ids": {
+            "tool_name": "read_paper_metadata"
+          },
+          "counters": {
+            "model_rounds": 2,
+            "tool_calls": 4,
+            "block_reads": 0,
+            "input_tokens": 703,
+            "output_tokens": 265
+          }
+        },
+        {
+          "sequence_no": 15,
+          "event_type": "tool_completed",
+          "summary": "只读工具 read_paper_metadata 已完成",
+          "stable_ids": {
+            "tool_name": "read_paper_metadata"
+          },
+          "counters": {
+            "model_rounds": 2,
+            "tool_calls": 4,
+            "block_reads": 0,
+            "input_tokens": 703,
+            "output_tokens": 265
+          }
+        },
+        {
+          "sequence_no": 16,
+          "event_type": "tool_started",
+          "summary": "调用只读工具 read_managed_blocks",
+          "stable_ids": {
+            "tool_name": "read_managed_blocks"
+          },
+          "counters": {
+            "model_rounds": 3,
+            "tool_calls": 5,
+            "block_reads": 5,
+            "input_tokens": 1503,
+            "output_tokens": 623
+          }
+        },
+        {
+          "sequence_no": 17,
+          "event_type": "tool_started",
+          "summary": "调用只读工具 read_managed_blocks",
+          "stable_ids": {
+            "tool_name": "read_managed_blocks"
+          },
+          "counters": {
+            "model_rounds": 3,
+            "tool_calls": 6,
+            "block_reads": 10,
+            "input_tokens": 1503,
+            "output_tokens": 623
+          }
+        },
+        {
+          "sequence_no": 18,
+          "event_type": "context_read",
+          "summary": "读取受管证据块",
+          "stable_ids": {
+            "block_id": "normalized:2608.21867:text:a2f7b3c37549",
+            "source_id": "2608.21867"
+          },
+          "counters": {
+            "model_rounds": 3,
+            "tool_calls": 6,
+            "block_reads": 10,
+            "input_tokens": 1503,
+            "output_tokens": 623
+          }
+        },
+        {
+          "sequence_no": 19,
+          "event_type": "context_read",
+          "summary": "读取受管证据块",
+          "stable_ids": {
+            "block_id": "normalized:2608.21867:text:ad9e98a54193",
+            "source_id": "2608.21867"
+          },
+          "counters": {
+            "model_rounds": 3,
+            "tool_calls": 6,
+            "block_reads": 10,
+            "input_tokens": 1503,
+            "output_tokens": 623
+          }
+        },
+        {
+          "sequence_no": 20,
+          "event_type": "context_read",
+          "summary": "读取受管证据块",
+          "stable_ids": {
+            "block_id": "normalized:2608.21867:figure:d33d6a0fe430",
+            "source_id": "2608.21867"
+          },
+          "counters": {
+            "model_rounds": 3,
+            "tool_calls": 6,
+            "block_reads": 10,
+            "input_tokens": 1503,
+            "output_tokens": 623
+          }
+        },
+        {
+          "sequence_no": 21,
+          "event_type": "context_read",
+          "summary": "读取受管证据块",
+          "stable_ids": {
+            "block_id": "normalized:2608.21867:text:1943df5dfe68",
+            "source_id": "2608.21867"
+          },
+          "counters": {
+            "model_rounds": 3,
+            "tool_calls": 6,
+            "block_reads": 10,
+            "input_tokens": 1503,
+            "output_tokens": 623
+          }
+        },
+        {
+          "sequence_no": 22,
+          "event_type": "context_read",
+          "summary": "读取受管证据块",
+          "stable_ids": {
+            "block_id": "normalized:2608.21867:text:33b45488d1a0",
+            "source_id": "2608.21867"
+          },
+          "counters": {
+            "model_rounds": 3,
+            "tool_calls": 6,
+            "block_reads": 10,
+            "input_tokens": 1503,
+            "output_tokens": 623
+          }
+        },
+        {
+          "sequence_no": 23,
+          "event_type": "tool_completed",
+          "summary": "只读工具 read_managed_blocks 已完成",
+          "stable_ids": {
+            "tool_name": "read_managed_blocks"
+          },
+          "counters": {
+            "model_rounds": 3,
+            "tool_calls": 6,
+            "block_reads": 10,
+            "input_tokens": 1503,
+            "output_tokens": 623
+          }
+        },
+        {
+          "sequence_no": 24,
+          "event_type": "context_read",
+          "summary": "读取受管证据块",
+          "stable_ids": {
+            "block_id": "normalized:2608.22767:text:444210d966f0",
+            "source_id": "2608.22767"
+          },
+          "counters": {
+            "model_rounds": 3,
+            "tool_calls": 6,
+            "block_reads": 10,
+            "input_tokens": 1503,
+            "output_tokens": 623
+          }
+        },
+        {
+          "sequence_no": 25,
+          "event_type": "context_read",
+          "summary": "读取受管证据块",
+          "stable_ids": {
+            "block_id": "normalized:2608.22767:text:519cdbc91499",
+            "source_id": "2608.22767"
+          },
+          "counters": {
+            "model_rounds": 3,
+            "tool_calls": 6,
+            "block_reads": 10,
+            "input_tokens": 1503,
+            "output_tokens": 623
+          }
+        },
+        {
+          "sequence_no": 26,
+          "event_type": "context_read",
+          "summary": "读取受管证据块",
+          "stable_ids": {
+            "block_id": "normalized:2608.22767:text:110c9a80ca2f",
+            "source_id": "2608.22767"
+          },
+          "counters": {
+            "model_rounds": 3,
+            "tool_calls": 6,
+            "block_reads": 10,
+            "input_tokens": 1503,
+            "output_tokens": 623
+          }
+        },
+        {
+          "sequence_no": 27,
+          "event_type": "context_read",
+          "summary": "读取受管证据块",
+          "stable_ids": {
+            "block_id": "normalized:2608.22767:text:06ffbb678143",
+            "source_id": "2608.22767"
+          },
+          "counters": {
+            "model_rounds": 3,
+            "tool_calls": 6,
+            "block_reads": 10,
+            "input_tokens": 1503,
+            "output_tokens": 623
+          }
+        },
+        {
+          "sequence_no": 28,
+          "event_type": "context_read",
+          "summary": "读取受管证据块",
+          "stable_ids": {
+            "block_id": "normalized:2608.22767:text:5c1aa92177c6",
+            "source_id": "2608.22767"
+          },
+          "counters": {
+            "model_rounds": 3,
+            "tool_calls": 6,
+            "block_reads": 10,
+            "input_tokens": 1503,
+            "output_tokens": 623
+          }
+        },
+        {
+          "sequence_no": 29,
+          "event_type": "tool_completed",
+          "summary": "只读工具 read_managed_blocks 已完成",
+          "stable_ids": {
+            "tool_name": "read_managed_blocks"
+          },
+          "counters": {
+            "model_rounds": 3,
+            "tool_calls": 6,
+            "block_reads": 10,
+            "input_tokens": 1503,
+            "output_tokens": 623
+          }
+        },
+        {
+          "sequence_no": 30,
+          "event_type": "tool_started",
+          "summary": "调用只读工具 read_paper_metadata",
+          "stable_ids": {
+            "tool_name": "read_paper_metadata"
+          },
+          "counters": {
+            "model_rounds": 4,
+            "tool_calls": 7,
+            "block_reads": 10,
+            "input_tokens": 4228,
+            "output_tokens": 1623
+          }
+        },
+        {
+          "sequence_no": 31,
+          "event_type": "tool_completed",
+          "summary": "只读工具 read_paper_metadata 已完成",
+          "stable_ids": {
+            "tool_name": "read_paper_metadata"
+          },
+          "counters": {
+            "model_rounds": 4,
+            "tool_calls": 7,
+            "block_reads": 10,
+            "input_tokens": 4228,
+            "output_tokens": 1623
+          }
+        },
+        {
+          "sequence_no": 32,
+          "event_type": "final_draft",
+          "summary": "探索草稿已生成",
+          "stable_ids": {
+            "run_id": "v0-live-1"
+          },
+          "counters": {
+            "model_rounds": 5,
+            "tool_calls": 7,
+            "block_reads": 10,
+            "input_tokens": 7171,
+            "output_tokens": 2623
+          }
+        }
+      ],
+      "final_draft": "## Exploration draft\n\nBased on the managed catalog, the two papers in question are **MemGuard** (\"MemGuard: Persisting Verifier Signals for LLM-Agent Memory Governance\", arXiv 2608.21867) and **The Retriever Should Remember: Experience-Amortized Reranking for Long-Term Agent Memory** (arXiv 2608.22767). Here is what the evidence I could read supports.\n\n### What MemGuard claims: persistent verifier-based memory governance\n\nMemGuard is explicitly motivated by **two distinct long-term memory failure modes**:\n\n1. **Unreliable admission** — \"failed trajectories, accidental successes, and misleading observations enter memory because they appear relevant, then mislead later decisions\" [normalized:2608.21867:text:ad9e98a54193]. Its concrete example: a web agent that learns \"edit the first row after filtering an admin table\" will \"edit the wrong row whenever a later table is sorted differently\" [normalized:2608.21867:text:33b45488d1a0].\n2. **Memory drift** — \"long-running banks accumulate duplicate, stale, and conflicting records that retrieval alone cannot repair\" [normalized:2608.21867:text:ad9e98a54193]; e.g., \"a tool-usage hint from an older API version stays in the top-*k* pool and is re-injected for every superficially similar query\" [normalized:2608.21867:text:33b45488d1a0].\n\nThe governance mechanism directly targets these failures at the *storage/lifecycle* level: verifier output is treated \"not as a one-shot filter, but as persistent lifecycle metadata,\" converting \"multi-criteria score-token verification into reward, confidence, label, and uncertainty descriptors that are attached to every candidate before activation and reused during retrieval, conflict resolution, summarization, and archival\" [normalized:2608.21867:text:ad9e98a54193]. The figure caption summarizes this as persisting \"verifier-derived descriptors to govern memory admission, lifecycle updates, quality-aware retrieval, and failure-guard injection\" [normalized:2608.21867:figure:d33d6a0fe430]. So MemGuard's answer is: vet what *gets into* the bank (admission) and actively maintain the bank over time (conflict resolution, summarization, archival) so drift does not accumulate.\n\n### What the evidence supports for experience-amortized reranking\n\nHere I hit a hard evidence limit: for 2608.22767, the only full sample blocks returned for that source are front matter — the title, authors (Qi Feng, Chris Ding, Jicong Fan), and affiliation (The Chinese University of Hong Kong, Shenzhen) [normalized:2608.22767:text:444210d966f0, normalized:2608.22767:text:519cdbc91499, normalized:2608.22767:text:110c9a80ca2f, normalized:2608.22767:text:06ffbb678143, normalized:2608.22767:text:5c1aa92177c6]. I did not find additional sample content for this source, so I cannot cite the paper's own description of its failure modes or method details.\n\nReading strictly from the title (\"The Retriever Should Remember: Experience-Amortized Reranking for Long-Term Agent Memory\"), the implied target is the *retrieval* side of the memory pipeline rather than the storage side: the retriever itself should retain what reranking choices worked across past tasks (hence \"experience-amortized\"), rather than discarding that experience after each query and reranking fresh every time. That would address a failure class complementary to MemGuard's — memory that is in the bank but never surfaces at the right moment (retrieval misses or poor ranking), as opposed to MemGuard's failures of what enters the bank and how the bank degrades over time. But I want to be explicit that this is an inference from the title alone, not from read body text.\n\n### Synthesis\n\n- **MemGuard (verified from read text):** attacks **admission and drift failures** — bad content entering memory and the bank deteriorating over time — by persisting verifier signals (reward, confidence, label, uncertainty) as lifecycle metadata governing admission, retrieval, conflict resolution, summarization, and archival [normalized:2608.21867:text:ad9e98a54193, normalized:2608.21867:figure:d33d6a0fe430].\n- **Experience-amortized reranking (title-level only):** appears to attack **retrieval-fidelity failures** — the right memory existing but not being selected — by letting the retriever accumulate reranking experience across episodes rather than reranking each query in isolation [normalized:2608.22767:text:444210d966f0].\n\n**Caveat:** to give a fully evidenced answer on the second paper, I would need to read its body blocks, but the sample block ids returned for that source contained only front matter. If additional block ids can be supplied for 2608.22767, I can complete the comparison.",
+      "actual_block_ids": [
+        "normalized:2608.21867:figure:d33d6a0fe430",
+        "normalized:2608.21867:text:1943df5dfe68",
+        "normalized:2608.21867:text:33b45488d1a0",
+        "normalized:2608.21867:text:a2f7b3c37549",
+        "normalized:2608.21867:text:ad9e98a54193",
+        "normalized:2608.22767:text:06ffbb678143",
+        "normalized:2608.22767:text:110c9a80ca2f",
+        "normalized:2608.22767:text:444210d966f0",
+        "normalized:2608.22767:text:519cdbc91499",
+        "normalized:2608.22767:text:5c1aa92177c6"
+      ],
+      "resolved_citation_ids": [
+        "normalized:2608.21867:figure:d33d6a0fe430",
+        "normalized:2608.21867:text:33b45488d1a0",
+        "normalized:2608.21867:text:ad9e98a54193",
+        "normalized:2608.22767:text:06ffbb678143",
+        "normalized:2608.22767:text:110c9a80ca2f",
+        "normalized:2608.22767:text:444210d966f0",
+        "normalized:2608.22767:text:519cdbc91499",
+        "normalized:2608.22767:text:5c1aa92177c6"
+      ],
+      "unresolved_citation_ids": [],
+      "citation_closed_loop": true
+    },
+    {
+      "run_id": "v0-live-2",
+      "question_id": "q-memory-injection-boundary",
+      "stop_reason": "completed",
+      "events": [
+        {
+          "sequence_no": 1,
+          "event_type": "run_started",
+          "summary": "探索已开始",
+          "stable_ids": {
+            "run_id": "v0-live-2"
+          },
+          "counters": {
+            "model_rounds": 0,
+            "tool_calls": 0,
+            "block_reads": 0,
+            "input_tokens": 0,
+            "output_tokens": 0
+          }
+        },
+        {
+          "sequence_no": 2,
+          "event_type": "tool_started",
+          "summary": "调用只读工具 search_sources",
+          "stable_ids": {
+            "tool_name": "search_sources"
+          },
+          "counters": {
+            "model_rounds": 1,
+            "tool_calls": 1,
+            "block_reads": 0,
+            "input_tokens": 195,
+            "output_tokens": 156
+          }
+        },
+        {
+          "sequence_no": 3,
+          "event_type": "source_discovered",
+          "summary": "发现受管来源",
+          "stable_ids": {
+            "source_id": "2608.23471"
+          },
+          "counters": {
+            "model_rounds": 1,
+            "tool_calls": 1,
+            "block_reads": 0,
+            "input_tokens": 195,
+            "output_tokens": 156
+          }
+        },
+        {
+          "sequence_no": 4,
+          "event_type": "source_discovered",
+          "summary": "发现受管来源",
+          "stable_ids": {
+            "source_id": "2608.21867"
+          },
+          "counters": {
+            "model_rounds": 1,
+            "tool_calls": 1,
+            "block_reads": 0,
+            "input_tokens": 195,
+            "output_tokens": 156
+          }
+        },
+        {
+          "sequence_no": 5,
+          "event_type": "source_discovered",
+          "summary": "发现受管来源",
+          "stable_ids": {
+            "source_id": "2608.22767"
+          },
+          "counters": {
+            "model_rounds": 1,
+            "tool_calls": 1,
+            "block_reads": 0,
+            "input_tokens": 195,
+            "output_tokens": 156
+          }
+        },
+        {
+          "sequence_no": 6,
+          "event_type": "tool_completed",
+          "summary": "只读工具 search_sources 已完成",
+          "stable_ids": {
+            "tool_name": "search_sources"
+          },
+          "counters": {
+            "model_rounds": 1,
+            "tool_calls": 1,
+            "block_reads": 0,
+            "input_tokens": 195,
+            "output_tokens": 156
+          }
+        },
+        {
+          "sequence_no": 7,
+          "event_type": "tool_started",
+          "summary": "调用只读工具 search_sources",
+          "stable_ids": {
+            "tool_name": "search_sources"
+          },
+          "counters": {
+            "model_rounds": 1,
+            "tool_calls": 2,
+            "block_reads": 0,
+            "input_tokens": 195,
+            "output_tokens": 156
+          }
+        },
+        {
+          "sequence_no": 8,
+          "event_type": "source_discovered",
+          "summary": "发现受管来源",
+          "stable_ids": {
+            "source_id": "2608.22767"
+          },
+          "counters": {
+            "model_rounds": 1,
+            "tool_calls": 2,
+            "block_reads": 0,
+            "input_tokens": 195,
+            "output_tokens": 156
+          }
+        },
+        {
+          "sequence_no": 9,
+          "event_type": "source_discovered",
+          "summary": "发现受管来源",
+          "stable_ids": {
+            "source_id": "2608.21867"
+          },
+          "counters": {
+            "model_rounds": 1,
+            "tool_calls": 2,
+            "block_reads": 0,
+            "input_tokens": 195,
+            "output_tokens": 156
+          }
+        },
+        {
+          "sequence_no": 10,
+          "event_type": "source_discovered",
+          "summary": "发现受管来源",
+          "stable_ids": {
+            "source_id": "2608.23471"
+          },
+          "counters": {
+            "model_rounds": 1,
+            "tool_calls": 2,
+            "block_reads": 0,
+            "input_tokens": 195,
+            "output_tokens": 156
+          }
+        },
+        {
+          "sequence_no": 11,
+          "event_type": "tool_completed",
+          "summary": "只读工具 search_sources 已完成",
+          "stable_ids": {
+            "tool_name": "search_sources"
+          },
+          "counters": {
+            "model_rounds": 1,
+            "tool_calls": 2,
+            "block_reads": 0,
+            "input_tokens": 195,
+            "output_tokens": 156
+          }
+        },
+        {
+          "sequence_no": 12,
+          "event_type": "tool_started",
+          "summary": "调用只读工具 read_paper_metadata",
+          "stable_ids": {
+            "tool_name": "read_paper_metadata"
+          },
+          "counters": {
+            "model_rounds": 2,
+            "tool_calls": 3,
+            "block_reads": 0,
+            "input_tokens": 755,
+            "output_tokens": 366
+          }
+        },
+        {
+          "sequence_no": 13,
+          "event_type": "tool_started",
+          "summary": "调用只读工具 read_paper_metadata",
+          "stable_ids": {
+            "tool_name": "read_paper_metadata"
+          },
+          "counters": {
+            "model_rounds": 2,
+            "tool_calls": 4,
+            "block_reads": 0,
+            "input_tokens": 755,
+            "output_tokens": 366
+          }
+        },
+        {
+          "sequence_no": 14,
+          "event_type": "tool_completed",
+          "summary": "只读工具 read_paper_metadata 已完成",
+          "stable_ids": {
+            "tool_name": "read_paper_metadata"
+          },
+          "counters": {
+            "model_rounds": 2,
+            "tool_calls": 4,
+            "block_reads": 0,
+            "input_tokens": 755,
+            "output_tokens": 366
+          }
+        },
+        {
+          "sequence_no": 15,
+          "event_type": "tool_completed",
+          "summary": "只读工具 read_paper_metadata 已完成",
+          "stable_ids": {
+            "tool_name": "read_paper_metadata"
+          },
+          "counters": {
+            "model_rounds": 2,
+            "tool_calls": 4,
+            "block_reads": 0,
+            "input_tokens": 755,
+            "output_tokens": 366
+          }
+        },
+        {
+          "sequence_no": 16,
+          "event_type": "tool_started",
+          "summary": "调用只读工具 read_managed_blocks",
+          "stable_ids": {
+            "tool_name": "read_managed_blocks"
+          },
+          "counters": {
+            "model_rounds": 3,
+            "tool_calls": 5,
+            "block_reads": 5,
+            "input_tokens": 1643,
+            "output_tokens": 719
+          }
+        },
+        {
+          "sequence_no": 17,
+          "event_type": "tool_started",
+          "summary": "调用只读工具 read_managed_blocks",
+          "stable_ids": {
+            "tool_name": "read_managed_blocks"
+          },
+          "counters": {
+            "model_rounds": 3,
+            "tool_calls": 6,
+            "block_reads": 10,
+            "input_tokens": 1643,
+            "output_tokens": 719
+          }
+        },
+        {
+          "sequence_no": 18,
+          "event_type": "context_read",
+          "summary": "读取受管证据块",
+          "stable_ids": {
+            "block_id": "normalized:2608.23471:text:2ae2c919e10c",
+            "source_id": "2608.23471"
+          },
+          "counters": {
+            "model_rounds": 3,
+            "tool_calls": 6,
+            "block_reads": 10,
+            "input_tokens": 1643,
+            "output_tokens": 719
+          }
+        },
+        {
+          "sequence_no": 19,
+          "event_type": "context_read",
+          "summary": "读取受管证据块",
+          "stable_ids": {
+            "block_id": "normalized:2608.23471:text:519cdbc91499",
+            "source_id": "2608.23471"
+          },
+          "counters": {
+            "model_rounds": 3,
+            "tool_calls": 6,
+            "block_reads": 10,
+            "input_tokens": 1643,
+            "output_tokens": 719
+          }
+        },
+        {
+          "sequence_no": 20,
+          "event_type": "context_read",
+          "summary": "读取受管证据块",
+          "stable_ids": {
+            "block_id": "normalized:2608.23471:text:110c9a80ca2f",
+            "source_id": "2608.23471"
+          },
+          "counters": {
+            "model_rounds": 3,
+            "tool_calls": 6,
+            "block_reads": 10,
+            "input_tokens": 1643,
+            "output_tokens": 719
+          }
+        },
+        {
+          "sequence_no": 21,
+          "event_type": "context_read",
+          "summary": "读取受管证据块",
+          "stable_ids": {
+            "block_id": "normalized:2608.23471:text:3cf0ba397e0e",
+            "source_id": "2608.23471"
+          },
+          "counters": {
+            "model_rounds": 3,
+            "tool_calls": 6,
+            "block_reads": 10,
+            "input_tokens": 1643,
+            "output_tokens": 719
+          }
+        },
+        {
+          "sequence_no": 22,
+          "event_type": "context_read",
+          "summary": "读取受管证据块",
+          "stable_ids": {
+            "block_id": "normalized:2608.23471:text:b73520457f3c",
+            "source_id": "2608.23471"
+          },
+          "counters": {
+            "model_rounds": 3,
+            "tool_calls": 6,
+            "block_reads": 10,
+            "input_tokens": 1643,
+            "output_tokens": 719
+          }
+        },
+        {
+          "sequence_no": 23,
+          "event_type": "tool_completed",
+          "summary": "只读工具 read_managed_blocks 已完成",
+          "stable_ids": {
+            "tool_name": "read_managed_blocks"
+          },
+          "counters": {
+            "model_rounds": 3,
+            "tool_calls": 6,
+            "block_reads": 10,
+            "input_tokens": 1643,
+            "output_tokens": 719
+          }
+        },
+        {
+          "sequence_no": 24,
+          "event_type": "context_read",
+          "summary": "读取受管证据块",
+          "stable_ids": {
+            "block_id": "normalized:2608.21867:text:a2f7b3c37549",
+            "source_id": "2608.21867"
+          },
+          "counters": {
+            "model_rounds": 3,
+            "tool_calls": 6,
+            "block_reads": 10,
+            "input_tokens": 1643,
+            "output_tokens": 719
+          }
+        },
+        {
+          "sequence_no": 25,
+          "event_type": "context_read",
+          "summary": "读取受管证据块",
+          "stable_ids": {
+            "block_id": "normalized:2608.21867:text:ad9e98a54193",
+            "source_id": "2608.21867"
+          },
+          "counters": {
+            "model_rounds": 3,
+            "tool_calls": 6,
+            "block_reads": 10,
+            "input_tokens": 1643,
+            "output_tokens": 719
+          }
+        },
+        {
+          "sequence_no": 26,
+          "event_type": "context_read",
+          "summary": "读取受管证据块",
+          "stable_ids": {
+            "block_id": "normalized:2608.21867:figure:d33d6a0fe430",
+            "source_id": "2608.21867"
+          },
+          "counters": {
+            "model_rounds": 3,
+            "tool_calls": 6,
+            "block_reads": 10,
+            "input_tokens": 1643,
+            "output_tokens": 719
+          }
+        },
+        {
+          "sequence_no": 27,
+          "event_type": "context_read",
+          "summary": "读取受管证据块",
+          "stable_ids": {
+            "block_id": "normalized:2608.21867:text:1943df5dfe68",
+            "source_id": "2608.21867"
+          },
+          "counters": {
+            "model_rounds": 3,
+            "tool_calls": 6,
+            "block_reads": 10,
+            "input_tokens": 1643,
+            "output_tokens": 719
+          }
+        },
+        {
+          "sequence_no": 28,
+          "event_type": "context_read",
+          "summary": "读取受管证据块",
+          "stable_ids": {
+            "block_id": "normalized:2608.21867:text:33b45488d1a0",
+            "source_id": "2608.21867"
+          },
+          "counters": {
+            "model_rounds": 3,
+            "tool_calls": 6,
+            "block_reads": 10,
+            "input_tokens": 1643,
+            "output_tokens": 719
+          }
+        },
+        {
+          "sequence_no": 29,
+          "event_type": "tool_completed",
+          "summary": "只读工具 read_managed_blocks 已完成",
+          "stable_ids": {
+            "tool_name": "read_managed_blocks"
+          },
+          "counters": {
+            "model_rounds": 3,
+            "tool_calls": 6,
+            "block_reads": 10,
+            "input_tokens": 1643,
+            "output_tokens": 719
+          }
+        },
+        {
+          "sequence_no": 30,
+          "event_type": "tool_started",
+          "summary": "调用只读工具 read_paper_metadata",
+          "stable_ids": {
+            "tool_name": "read_paper_metadata"
+          },
+          "counters": {
+            "model_rounds": 4,
+            "tool_calls": 7,
+            "block_reads": 10,
+            "input_tokens": 4486,
+            "output_tokens": 1719
+          }
+        },
+        {
+          "sequence_no": 31,
+          "event_type": "tool_completed",
+          "summary": "只读工具 read_paper_metadata 已完成",
+          "stable_ids": {
+            "tool_name": "read_paper_metadata"
+          },
+          "counters": {
+            "model_rounds": 4,
+            "tool_calls": 7,
+            "block_reads": 10,
+            "input_tokens": 4486,
+            "output_tokens": 1719
+          }
+        },
+        {
+          "sequence_no": 32,
+          "event_type": "tool_started",
+          "summary": "调用只读工具 read_paper_metadata",
+          "stable_ids": {
+            "tool_name": "read_paper_metadata"
+          },
+          "counters": {
+            "model_rounds": 5,
+            "tool_calls": 8,
+            "block_reads": 10,
+            "input_tokens": 7522,
+            "output_tokens": 2243
+          }
+        },
+        {
+          "sequence_no": 33,
+          "event_type": "tool_completed",
+          "summary": "只读工具 read_paper_metadata 已完成",
+          "stable_ids": {
+            "tool_name": "read_paper_metadata"
+          },
+          "counters": {
+            "model_rounds": 5,
+            "tool_calls": 8,
+            "block_reads": 10,
+            "input_tokens": 7522,
+            "output_tokens": 2243
+          }
+        },
+        {
+          "sequence_no": 34,
+          "event_type": "tool_started",
+          "summary": "调用只读工具 read_managed_blocks",
+          "stable_ids": {
+            "tool_name": "read_managed_blocks"
+          },
+          "counters": {
+            "model_rounds": 6,
+            "tool_calls": 9,
+            "block_reads": 15,
+            "input_tokens": 10754,
+            "output_tokens": 2414
+          }
+        },
+        {
+          "sequence_no": 35,
+          "event_type": "context_read",
+          "summary": "读取受管证据块",
+          "stable_ids": {
+            "block_id": "normalized:2608.22767:text:444210d966f0",
+            "source_id": "2608.22767"
+          },
+          "counters": {
+            "model_rounds": 6,
+            "tool_calls": 9,
+            "block_reads": 15,
+            "input_tokens": 10754,
+            "output_tokens": 2414
+          }
+        },
+        {
+          "sequence_no": 36,
+          "event_type": "context_read",
+          "summary": "读取受管证据块",
+          "stable_ids": {
+            "block_id": "normalized:2608.22767:text:519cdbc91499",
+            "source_id": "2608.22767"
+          },
+          "counters": {
+            "model_rounds": 6,
+            "tool_calls": 9,
+            "block_reads": 15,
+            "input_tokens": 10754,
+            "output_tokens": 2414
+          }
+        },
+        {
+          "sequence_no": 37,
+          "event_type": "context_read",
+          "summary": "读取受管证据块",
+          "stable_ids": {
+            "block_id": "normalized:2608.22767:text:110c9a80ca2f",
+            "source_id": "2608.22767"
+          },
+          "counters": {
+            "model_rounds": 6,
+            "tool_calls": 9,
+            "block_reads": 15,
+            "input_tokens": 10754,
+            "output_tokens": 2414
+          }
+        },
+        {
+          "sequence_no": 38,
+          "event_type": "context_read",
+          "summary": "读取受管证据块",
+          "stable_ids": {
+            "block_id": "normalized:2608.22767:text:06ffbb678143",
+            "source_id": "2608.22767"
+          },
+          "counters": {
+            "model_rounds": 6,
+            "tool_calls": 9,
+            "block_reads": 15,
+            "input_tokens": 10754,
+            "output_tokens": 2414
+          }
+        },
+        {
+          "sequence_no": 39,
+          "event_type": "context_read",
+          "summary": "读取受管证据块",
+          "stable_ids": {
+            "block_id": "normalized:2608.22767:text:5c1aa92177c6",
+            "source_id": "2608.22767"
+          },
+          "counters": {
+            "model_rounds": 6,
+            "tool_calls": 9,
+            "block_reads": 15,
+            "input_tokens": 10754,
+            "output_tokens": 2414
+          }
+        },
+        {
+          "sequence_no": 40,
+          "event_type": "tool_completed",
+          "summary": "只读工具 read_managed_blocks 已完成",
+          "stable_ids": {
+            "tool_name": "read_managed_blocks"
+          },
+          "counters": {
+            "model_rounds": 6,
+            "tool_calls": 9,
+            "block_reads": 15,
+            "input_tokens": 10754,
+            "output_tokens": 2414
+          }
+        },
+        {
+          "sequence_no": 41,
+          "event_type": "final_draft",
+          "summary": "探索草稿已生成",
+          "stable_ids": {
+            "run_id": "v0-live-2"
+          },
+          "counters": {
+            "model_rounds": 7,
+            "tool_calls": 9,
+            "block_reads": 15,
+            "input_tokens": 14451,
+            "output_tokens": 3414
+          }
+        }
+      ],
+      "final_draft": "## Exploration draft\n\nBelow is my synthesis based strictly on the blocks I read. Note upfront: the supplied sample blocks for the attack paper (**InjecMEM**, 2608.23471) cover only its title page and abstract header, so the attack's internal mechanism is not directly evidenced here; I flag where claims are inferred from the title versus read from the governance paper.\n\n### Assumptions of long-term agent memory governance (as stated in the supplied evidence)\n\nThe governance paper **MemGuard** (2608.21867) explicitly names the governing assumptions:\n\n1. **Stored experience remains reliable across hundreds of interactions.** The abstract states memory \"is useful only when stored experience remains reliable across hundreds of interactions,\" and that two failure modes \"break that assumption in practice\" [normalized:2608.21867:text:ad9e98a54193].\n2. **Admission by apparent relevance is trustworthy.** The first named failure mode is \"unreliable admission\": failed trajectories, accidental successes, and misleading observations \"enter memory because they appear relevant, then mislead later decisions\" [normalized:2608.21867:text:ad9e98a54193]; the introduction gives the concrete example of a web agent learning \"edit the first row after filtering an admin table\" and editing the wrong row later [normalized:2608.21867:text:33b45488d1a0].\n3. **Memory quality determines agent reliability.** Quality of stored memory \"directly determines whether agents become more reliable as they accumulate experience or whether their behavior degrades unpredictably over time\" [normalized:2608.21867:text:1943df5dfe68].\n4. **Retrieval plus lifecycle management can repair drift.** The second failure mode, \"memory drift,\" is described as accumulation of duplicate, stale, and conflicting records \"that retrieval alone cannot repair\" — implying governance via persistent verifier descriptors attached to candidates and reused in \"retrieval, conflict resolution, summarization, and archival\" [normalized:2608.21867:text:ad9e98a54193], with \"quality-aware retrieval, and failure-guard injection\" as governed operations [normalized:2608.21867:figure:d33d6a0fe430].\n\n### How memory injection attacks challenge these assumptions\n\n- **The reliability assumption (1) is the most directly challenged.** The attack paper's title identifies a \"Memory Injection Attack on LLM Agent Memory Systems\" [normalized:2608.23471:text:2ae2c919e10c] — i.e., an attacker can write content into the store. If stored experience can be adversary-controlled, the core premise that accumulated memory makes the agent \"more reliable\" [normalized:2608.21867:text:1943df5dfe68] fails by construction. *(This inference rests on the title; the attack paper's body was not in the supplied sample.)*\n- **The admission assumption (2) is challenged by making \"looks relevant\" an adversarial property.** MemGuard itself concedes that misleading content enters memory \"because they appear relevant\" [normalized:2608.21867:text:ad9e98a54193] and that \"misleading web observations\" are a routine source [normalized:2608.21867:text:33b45488d1a0]. An injection attack weaponizes exactly this admission path: attacker-crafted records are engineered to appear relevant, so the governance filter MemGuard describes cannot distinguish adversarial from accidental contamination on the supplied evidence.\n- **The drift/retrieval assumption (3–4) is challenged through re-injection.** MemGuard describes how stale records \"remain retrievable long after their assumptions stop holding\" and are \"re-injected for every superficially similar query\" [normalized:2608.21867:text:33b45488d1a0]. If an injected record is retrieved and re-injected, the memory system amplifies the attack across every later task, turning a single poisoning event into persistent influence — which is precisely the persistence (\"across hundreds of interactions\") that governance is assumed to guarantee [normalized:2608.21867:text:ad9e98a54193].\n\n### Defenses that remain unsupported by the supplied evidence\n\n1. **Verifier-signal governance as a defense against malicious injection is unevidenced.** MemGuard's stated mechanism — converting \"multi-criteria score-token verification into reward, confidence, label, and uncertainty descriptors\" attached to candidates and reused across the lifecycle [normalized:2608.21867:text:ad9e98a54193] — is presented as a governance design, and Figure 1 claims it governs \"memory admission, lifecycle updates, quality-aware retrieval, and failure-guard injection\" [normalized:2608.21867:figure:d33d6a0fe430]. However, the supplied blocks contain **no adversarial evaluation**: no test with deliberately injected/poisoned memory, no attack-resistance metric, and no evidence that verifier descriptors remain trustworthy when the memory bank itself contains attacker-controlled records.\n2. **Admission control against misleading content is supported only as motivation, not as a tested defense.** The unreliable-admission failure mode is described with honest examples [normalized:2608.21867:text:33b45488d1a0], but nothing in the supplied evidence shows the mechanism blocking adversarially crafted (rather than accidentally misleading) observations.\n3. **Benchmark results do not support security claims.** The abstract's quantitative claims — best success metric and lowest average steps in all 16 backbone–benchmark settings on Terminal-Bench 2.0, SWE-Bench Verified, WebArena, Mind2Web [normalized:2608.21867:text:ad9e98a54193] — measure task success under matched runtime budgets, not robustness to injection. They say nothing about whether the governing descriptors survive an attack, so any defense against memory injection that is implied by these numbers remains unsupported.\n4. **\"Failure-guard injection\" is, on the supplied evidence, possibly even a second attack surface.** The mechanism is named [normalized:2608.21867:figure:d33d6a0fe430] but not described in any read block; the supplied evidence neither supports it as a defense nor rules out that injected content could itself be re-injected through the failure-guard path.\n\n### Caveat on coverage\n\nI was unable to read any body content of the attack paper (only title/authors/affiliation/abstract-header blocks were returned as samples), so the specific challenge mechanism attributed to memory injection attacks is inferred from the title [normalized:2608.23471:text:2ae2c919e10c] and from MemGuard's own description of how stored records are re-injected [normalized:2608.21867:text:33b45488d1a0]. A third paper on retrieval-based memory reranking (2608.22767) returned only title-page blocks and contributed no usable evidence.",
+      "actual_block_ids": [
+        "normalized:2608.21867:figure:d33d6a0fe430",
+        "normalized:2608.21867:text:1943df5dfe68",
+        "normalized:2608.21867:text:33b45488d1a0",
+        "normalized:2608.21867:text:a2f7b3c37549",
+        "normalized:2608.21867:text:ad9e98a54193",
+        "normalized:2608.22767:text:06ffbb678143",
+        "normalized:2608.22767:text:110c9a80ca2f",
+        "normalized:2608.22767:text:444210d966f0",
+        "normalized:2608.22767:text:519cdbc91499",
+        "normalized:2608.22767:text:5c1aa92177c6",
+        "normalized:2608.23471:text:110c9a80ca2f",
+        "normalized:2608.23471:text:2ae2c919e10c",
+        "normalized:2608.23471:text:3cf0ba397e0e",
+        "normalized:2608.23471:text:519cdbc91499",
+        "normalized:2608.23471:text:b73520457f3c"
+      ],
+      "resolved_citation_ids": [
+        "normalized:2608.21867:figure:d33d6a0fe430",
+        "normalized:2608.21867:text:1943df5dfe68",
+        "normalized:2608.21867:text:33b45488d1a0",
+        "normalized:2608.21867:text:ad9e98a54193",
+        "normalized:2608.23471:text:2ae2c919e10c"
+      ],
+      "unresolved_citation_ids": [],
+      "citation_closed_loop": true
+    },
+    {
+      "run_id": "v0-live-3",
+      "question_id": "q-memory-method-map",
+      "stop_reason": "completed",
+      "events": [
+        {
+          "sequence_no": 1,
+          "event_type": "run_started",
+          "summary": "探索已开始",
+          "stable_ids": {
+            "run_id": "v0-live-3"
+          },
+          "counters": {
+            "model_rounds": 0,
+            "tool_calls": 0,
+            "block_reads": 0,
+            "input_tokens": 0,
+            "output_tokens": 0
+          }
+        },
+        {
+          "sequence_no": 2,
+          "event_type": "tool_started",
+          "summary": "调用只读工具 search_sources",
+          "stable_ids": {
+            "tool_name": "search_sources"
+          },
+          "counters": {
+            "model_rounds": 1,
+            "tool_calls": 1,
+            "block_reads": 0,
+            "input_tokens": 193,
+            "output_tokens": 139
+          }
+        },
+        {
+          "sequence_no": 3,
+          "event_type": "source_discovered",
+          "summary": "发现受管来源",
+          "stable_ids": {
+            "source_id": "2608.22767"
+          },
+          "counters": {
+            "model_rounds": 1,
+            "tool_calls": 1,
+            "block_reads": 0,
+            "input_tokens": 193,
+            "output_tokens": 139
+          }
+        },
+        {
+          "sequence_no": 4,
+          "event_type": "source_discovered",
+          "summary": "发现受管来源",
+          "stable_ids": {
+            "source_id": "2608.21867"
+          },
+          "counters": {
+            "model_rounds": 1,
+            "tool_calls": 1,
+            "block_reads": 0,
+            "input_tokens": 193,
+            "output_tokens": 139
+          }
+        },
+        {
+          "sequence_no": 5,
+          "event_type": "source_discovered",
+          "summary": "发现受管来源",
+          "stable_ids": {
+            "source_id": "2608.23471"
+          },
+          "counters": {
+            "model_rounds": 1,
+            "tool_calls": 1,
+            "block_reads": 0,
+            "input_tokens": 193,
+            "output_tokens": 139
+          }
+        },
+        {
+          "sequence_no": 6,
+          "event_type": "tool_completed",
+          "summary": "只读工具 search_sources 已完成",
+          "stable_ids": {
+            "tool_name": "search_sources"
+          },
+          "counters": {
+            "model_rounds": 1,
+            "tool_calls": 1,
+            "block_reads": 0,
+            "input_tokens": 193,
+            "output_tokens": 139
+          }
+        },
+        {
+          "sequence_no": 7,
+          "event_type": "tool_started",
+          "summary": "调用只读工具 read_run_status",
+          "stable_ids": {
+            "tool_name": "read_run_status"
+          },
+          "counters": {
+            "model_rounds": 1,
+            "tool_calls": 2,
+            "block_reads": 0,
+            "input_tokens": 193,
+            "output_tokens": 139
+          }
+        },
+        {
+          "sequence_no": 8,
+          "event_type": "tool_completed",
+          "summary": "只读工具 read_run_status 拒绝了无效参数",
+          "stable_ids": {
+            "tool_name": "read_run_status"
+          },
+          "counters": {
+            "model_rounds": 1,
+            "tool_calls": 2,
+            "block_reads": 0,
+            "input_tokens": 193,
+            "output_tokens": 139
+          }
+        },
+        {
+          "sequence_no": 9,
+          "event_type": "tool_started",
+          "summary": "调用只读工具 read_paper_metadata",
+          "stable_ids": {
+            "tool_name": "read_paper_metadata"
+          },
+          "counters": {
+            "model_rounds": 2,
+            "tool_calls": 3,
+            "block_reads": 0,
+            "input_tokens": 570,
+            "output_tokens": 461
+          }
+        },
+        {
+          "sequence_no": 10,
+          "event_type": "tool_started",
+          "summary": "调用只读工具 read_paper_metadata",
+          "stable_ids": {
+            "tool_name": "read_paper_metadata"
+          },
+          "counters": {
+            "model_rounds": 2,
+            "tool_calls": 4,
+            "block_reads": 0,
+            "input_tokens": 570,
+            "output_tokens": 461
+          }
+        },
+        {
+          "sequence_no": 11,
+          "event_type": "tool_completed",
+          "summary": "只读工具 read_paper_metadata 已完成",
+          "stable_ids": {
+            "tool_name": "read_paper_metadata"
+          },
+          "counters": {
+            "model_rounds": 2,
+            "tool_calls": 4,
+            "block_reads": 0,
+            "input_tokens": 570,
+            "output_tokens": 461
+          }
+        },
+        {
+          "sequence_no": 12,
+          "event_type": "tool_started",
+          "summary": "调用只读工具 read_paper_metadata",
+          "stable_ids": {
+            "tool_name": "read_paper_metadata"
+          },
+          "counters": {
+            "model_rounds": 2,
+            "tool_calls": 5,
+            "block_reads": 0,
+            "input_tokens": 570,
+            "output_tokens": 461
+          }
+        },
+        {
+          "sequence_no": 13,
+          "event_type": "tool_completed",
+          "summary": "只读工具 read_paper_metadata 已完成",
+          "stable_ids": {
+            "tool_name": "read_paper_metadata"
+          },
+          "counters": {
+            "model_rounds": 2,
+            "tool_calls": 5,
+            "block_reads": 0,
+            "input_tokens": 570,
+            "output_tokens": 461
+          }
+        },
+        {
+          "sequence_no": 14,
+          "event_type": "tool_completed",
+          "summary": "只读工具 read_paper_metadata 已完成",
+          "stable_ids": {
+            "tool_name": "read_paper_metadata"
+          },
+          "counters": {
+            "model_rounds": 2,
+            "tool_calls": 5,
+            "block_reads": 0,
+            "input_tokens": 570,
+            "output_tokens": 461
+          }
+        },
+        {
+          "sequence_no": 15,
+          "event_type": "tool_started",
+          "summary": "调用只读工具 read_managed_blocks",
+          "stable_ids": {
+            "tool_name": "read_managed_blocks"
+          },
+          "counters": {
+            "model_rounds": 3,
+            "tool_calls": 6,
+            "block_reads": 3,
+            "input_tokens": 1368,
+            "output_tokens": 947
+          }
+        },
+        {
+          "sequence_no": 16,
+          "event_type": "tool_started",
+          "summary": "调用只读工具 read_managed_blocks",
+          "stable_ids": {
+            "tool_name": "read_managed_blocks"
+          },
+          "counters": {
+            "model_rounds": 3,
+            "tool_calls": 7,
+            "block_reads": 6,
+            "input_tokens": 1368,
+            "output_tokens": 947
+          }
+        },
+        {
+          "sequence_no": 17,
+          "event_type": "context_read",
+          "summary": "读取受管证据块",
+          "stable_ids": {
+            "block_id": "normalized:2608.22767:text:444210d966f0",
+            "source_id": "2608.22767"
+          },
+          "counters": {
+            "model_rounds": 3,
+            "tool_calls": 7,
+            "block_reads": 6,
+            "input_tokens": 1368,
+            "output_tokens": 947
+          }
+        },
+        {
+          "sequence_no": 18,
+          "event_type": "context_read",
+          "summary": "读取受管证据块",
+          "stable_ids": {
+            "block_id": "normalized:2608.22767:text:519cdbc91499",
+            "source_id": "2608.22767"
+          },
+          "counters": {
+            "model_rounds": 3,
+            "tool_calls": 7,
+            "block_reads": 6,
+            "input_tokens": 1368,
+            "output_tokens": 947
+          }
+        },
+        {
+          "sequence_no": 19,
+          "event_type": "context_read",
+          "summary": "读取受管证据块",
+          "stable_ids": {
+            "block_id": "normalized:2608.22767:text:110c9a80ca2f",
+            "source_id": "2608.22767"
+          },
+          "counters": {
+            "model_rounds": 3,
+            "tool_calls": 7,
+            "block_reads": 6,
+            "input_tokens": 1368,
+            "output_tokens": 947
+          }
+        },
+        {
+          "sequence_no": 20,
+          "event_type": "tool_completed",
+          "summary": "只读工具 read_managed_blocks 已完成",
+          "stable_ids": {
+            "tool_name": "read_managed_blocks"
+          },
+          "counters": {
+            "model_rounds": 3,
+            "tool_calls": 7,
+            "block_reads": 6,
+            "input_tokens": 1368,
+            "output_tokens": 947
+          }
+        },
+        {
+          "sequence_no": 21,
+          "event_type": "tool_started",
+          "summary": "调用只读工具 read_managed_blocks",
+          "stable_ids": {
+            "tool_name": "read_managed_blocks"
+          },
+          "counters": {
+            "model_rounds": 3,
+            "tool_calls": 8,
+            "block_reads": 9,
+            "input_tokens": 1368,
+            "output_tokens": 947
+          }
+        },
+        {
+          "sequence_no": 22,
+          "event_type": "context_read",
+          "summary": "读取受管证据块",
+          "stable_ids": {
+            "block_id": "normalized:2608.21867:text:a2f7b3c37549",
+            "source_id": "2608.21867"
+          },
+          "counters": {
+            "model_rounds": 3,
+            "tool_calls": 8,
+            "block_reads": 9,
+            "input_tokens": 1368,
+            "output_tokens": 947
+          }
+        },
+        {
+          "sequence_no": 23,
+          "event_type": "context_read",
+          "summary": "读取受管证据块",
+          "stable_ids": {
+            "block_id": "normalized:2608.21867:text:ad9e98a54193",
+            "source_id": "2608.21867"
+          },
+          "counters": {
+            "model_rounds": 3,
+            "tool_calls": 8,
+            "block_reads": 9,
+            "input_tokens": 1368,
+            "output_tokens": 947
+          }
+        },
+        {
+          "sequence_no": 24,
+          "event_type": "context_read",
+          "summary": "读取受管证据块",
+          "stable_ids": {
+            "block_id": "normalized:2608.21867:text:1943df5dfe68",
+            "source_id": "2608.21867"
+          },
+          "counters": {
+            "model_rounds": 3,
+            "tool_calls": 8,
+            "block_reads": 9,
+            "input_tokens": 1368,
+            "output_tokens": 947
+          }
+        },
+        {
+          "sequence_no": 25,
+          "event_type": "tool_completed",
+          "summary": "只读工具 read_managed_blocks 已完成",
+          "stable_ids": {
+            "tool_name": "read_managed_blocks"
+          },
+          "counters": {
+            "model_rounds": 3,
+            "tool_calls": 8,
+            "block_reads": 9,
+            "input_tokens": 1368,
+            "output_tokens": 947
+          }
+        },
+        {
+          "sequence_no": 26,
+          "event_type": "context_read",
+          "summary": "读取受管证据块",
+          "stable_ids": {
+            "block_id": "normalized:2608.23471:text:2ae2c919e10c",
+            "source_id": "2608.23471"
+          },
+          "counters": {
+            "model_rounds": 3,
+            "tool_calls": 8,
+            "block_reads": 9,
+            "input_tokens": 1368,
+            "output_tokens": 947
+          }
+        },
+        {
+          "sequence_no": 27,
+          "event_type": "context_read",
+          "summary": "读取受管证据块",
+          "stable_ids": {
+            "block_id": "normalized:2608.23471:text:3cf0ba397e0e",
+            "source_id": "2608.23471"
+          },
+          "counters": {
+            "model_rounds": 3,
+            "tool_calls": 8,
+            "block_reads": 9,
+            "input_tokens": 1368,
+            "output_tokens": 947
+          }
+        },
+        {
+          "sequence_no": 28,
+          "event_type": "context_read",
+          "summary": "读取受管证据块",
+          "stable_ids": {
+            "block_id": "normalized:2608.23471:text:b73520457f3c",
+            "source_id": "2608.23471"
+          },
+          "counters": {
+            "model_rounds": 3,
+            "tool_calls": 8,
+            "block_reads": 9,
+            "input_tokens": 1368,
+            "output_tokens": 947
+          }
+        },
+        {
+          "sequence_no": 29,
+          "event_type": "tool_completed",
+          "summary": "只读工具 read_managed_blocks 已完成",
+          "stable_ids": {
+            "tool_name": "read_managed_blocks"
+          },
+          "counters": {
+            "model_rounds": 3,
+            "tool_calls": 8,
+            "block_reads": 9,
+            "input_tokens": 1368,
+            "output_tokens": 947
+          }
+        },
+        {
+          "sequence_no": 30,
+          "event_type": "tool_started",
+          "summary": "调用只读工具 read_managed_blocks",
+          "stable_ids": {
+            "tool_name": "read_managed_blocks"
+          },
+          "counters": {
+            "model_rounds": 4,
+            "tool_calls": 9,
+            "block_reads": 11,
+            "input_tokens": 3692,
+            "output_tokens": 1773
+          }
+        },
+        {
+          "sequence_no": 31,
+          "event_type": "tool_started",
+          "summary": "调用只读工具 read_managed_blocks",
+          "stable_ids": {
+            "tool_name": "read_managed_blocks"
+          },
+          "counters": {
+            "model_rounds": 4,
+            "tool_calls": 10,
+            "block_reads": 13,
+            "input_tokens": 3692,
+            "output_tokens": 1773
+          }
+        },
+        {
+          "sequence_no": 32,
+          "event_type": "tool_started",
+          "summary": "调用只读工具 read_managed_blocks",
+          "stable_ids": {
+            "tool_name": "read_managed_blocks"
+          },
+          "counters": {
+            "model_rounds": 4,
+            "tool_calls": 11,
+            "block_reads": 14,
+            "input_tokens": 3692,
+            "output_tokens": 1773
+          }
+        },
+        {
+          "sequence_no": 33,
+          "event_type": "context_read",
+          "summary": "读取受管证据块",
+          "stable_ids": {
+            "block_id": "normalized:2608.22767:text:06ffbb678143",
+            "source_id": "2608.22767"
+          },
+          "counters": {
+            "model_rounds": 4,
+            "tool_calls": 11,
+            "block_reads": 14,
+            "input_tokens": 3692,
+            "output_tokens": 1773
+          }
+        },
+        {
+          "sequence_no": 34,
+          "event_type": "context_read",
+          "summary": "读取受管证据块",
+          "stable_ids": {
+            "block_id": "normalized:2608.22767:text:5c1aa92177c6",
+            "source_id": "2608.22767"
+          },
+          "counters": {
+            "model_rounds": 4,
+            "tool_calls": 11,
+            "block_reads": 14,
+            "input_tokens": 3692,
+            "output_tokens": 1773
+          }
+        },
+        {
+          "sequence_no": 35,
+          "event_type": "tool_completed",
+          "summary": "只读工具 read_managed_blocks 已完成",
+          "stable_ids": {
+            "tool_name": "read_managed_blocks"
+          },
+          "counters": {
+            "model_rounds": 4,
+            "tool_calls": 11,
+            "block_reads": 14,
+            "input_tokens": 3692,
+            "output_tokens": 1773
+          }
+        },
+        {
+          "sequence_no": 36,
+          "event_type": "context_read",
+          "summary": "读取受管证据块",
+          "stable_ids": {
+            "block_id": "normalized:2608.23471:text:519cdbc91499",
+            "source_id": "2608.23471"
+          },
+          "counters": {
+            "model_rounds": 4,
+            "tool_calls": 11,
+            "block_reads": 14,
+            "input_tokens": 3692,
+            "output_tokens": 1773
+          }
+        },
+        {
+          "sequence_no": 37,
+          "event_type": "context_read",
+          "summary": "读取受管证据块",
+          "stable_ids": {
+            "block_id": "normalized:2608.23471:text:110c9a80ca2f",
+            "source_id": "2608.23471"
+          },
+          "counters": {
+            "model_rounds": 4,
+            "tool_calls": 11,
+            "block_reads": 14,
+            "input_tokens": 3692,
+            "output_tokens": 1773
+          }
+        },
+        {
+          "sequence_no": 38,
+          "event_type": "tool_completed",
+          "summary": "只读工具 read_managed_blocks 已完成",
+          "stable_ids": {
+            "tool_name": "read_managed_blocks"
+          },
+          "counters": {
+            "model_rounds": 4,
+            "tool_calls": 11,
+            "block_reads": 14,
+            "input_tokens": 3692,
+            "output_tokens": 1773
+          }
+        },
+        {
+          "sequence_no": 39,
+          "event_type": "context_read",
+          "summary": "读取受管证据块",
+          "stable_ids": {
+            "block_id": "normalized:2608.21867:text:33b45488d1a0",
+            "source_id": "2608.21867"
+          },
+          "counters": {
+            "model_rounds": 4,
+            "tool_calls": 11,
+            "block_reads": 14,
+            "input_tokens": 3692,
+            "output_tokens": 1773
+          }
+        },
+        {
+          "sequence_no": 40,
+          "event_type": "tool_completed",
+          "summary": "只读工具 read_managed_blocks 已完成",
+          "stable_ids": {
+            "tool_name": "read_managed_blocks"
+          },
+          "counters": {
+            "model_rounds": 4,
+            "tool_calls": 11,
+            "block_reads": 14,
+            "input_tokens": 3692,
+            "output_tokens": 1773
+          }
+        },
+        {
+          "sequence_no": 41,
+          "event_type": "tool_started",
+          "summary": "调用只读工具 search_sources",
+          "stable_ids": {
+            "tool_name": "search_sources"
+          },
+          "counters": {
+            "model_rounds": 5,
+            "tool_calls": 12,
+            "block_reads": 14,
+            "input_tokens": 6736,
+            "output_tokens": 2190
+          }
+        },
+        {
+          "sequence_no": 42,
+          "event_type": "source_discovered",
+          "summary": "发现受管来源",
+          "stable_ids": {
+            "source_id": "2608.21867"
+          },
+          "counters": {
+            "model_rounds": 5,
+            "tool_calls": 12,
+            "block_reads": 14,
+            "input_tokens": 6736,
+            "output_tokens": 2190
+          }
+        },
+        {
+          "sequence_no": 43,
+          "event_type": "source_discovered",
+          "summary": "发现受管来源",
+          "stable_ids": {
+            "source_id": "2608.23471"
+          },
+          "counters": {
+            "model_rounds": 5,
+            "tool_calls": 12,
+            "block_reads": 14,
+            "input_tokens": 6736,
+            "output_tokens": 2190
+          }
+        },
+        {
+          "sequence_no": 44,
+          "event_type": "source_discovered",
+          "summary": "发现受管来源",
+          "stable_ids": {
+            "source_id": "2608.22767"
+          },
+          "counters": {
+            "model_rounds": 5,
+            "tool_calls": 12,
+            "block_reads": 14,
+            "input_tokens": 6736,
+            "output_tokens": 2190
+          }
+        },
+        {
+          "sequence_no": 45,
+          "event_type": "tool_completed",
+          "summary": "只读工具 search_sources 已完成",
+          "stable_ids": {
+            "tool_name": "search_sources"
+          },
+          "counters": {
+            "model_rounds": 5,
+            "tool_calls": 12,
+            "block_reads": 14,
+            "input_tokens": 6736,
+            "output_tokens": 2190
+          }
+        },
+        {
+          "sequence_no": 46,
+          "event_type": "tool_started",
+          "summary": "调用只读工具 read_managed_blocks",
+          "stable_ids": {
+            "tool_name": "read_managed_blocks"
+          },
+          "counters": {
+            "model_rounds": 6,
+            "tool_calls": 13,
+            "block_reads": 15,
+            "input_tokens": 9945,
+            "output_tokens": 3143
+          }
+        },
+        {
+          "sequence_no": 47,
+          "event_type": "context_read",
+          "summary": "读取受管证据块",
+          "stable_ids": {
+            "block_id": "normalized:2608.21867:figure:d33d6a0fe430",
+            "source_id": "2608.21867"
+          },
+          "counters": {
+            "model_rounds": 6,
+            "tool_calls": 13,
+            "block_reads": 15,
+            "input_tokens": 9945,
+            "output_tokens": 3143
+          }
+        },
+        {
+          "sequence_no": 48,
+          "event_type": "tool_completed",
+          "summary": "只读工具 read_managed_blocks 已完成",
+          "stable_ids": {
+            "tool_name": "read_managed_blocks"
+          },
+          "counters": {
+            "model_rounds": 6,
+            "tool_calls": 13,
+            "block_reads": 15,
+            "input_tokens": 9945,
+            "output_tokens": 3143
+          }
+        },
+        {
+          "sequence_no": 49,
+          "event_type": "final_draft",
+          "summary": "探索草稿已生成",
+          "stable_ids": {
+            "run_id": "v0-live-3"
+          },
+          "counters": {
+            "model_rounds": 7,
+            "tool_calls": 13,
+            "block_reads": 15,
+            "input_tokens": 13302,
+            "output_tokens": 4143
+          }
+        }
+      ],
+      "final_draft": "## Exploration draft: initial method map for reliable long-term LLM-agent memory\n\nBased on the three sources in the catalog, the research front organizes into three complementary pillars — **governance**, **retrieval**, and **attack** — each proposing a distinct mechanism rather than a single unified system.\n\n### Method map\n\n**Governance — verifier signals as persistent lifecycle metadata (MemGuard).** The strongest evidence comes from the MemGuard abstract [normalized:2608.21867:text:ad9e98a54193] and introduction [normalized:2608.21867:text:1943df5dfe68]. The paper diagnoses two failure modes that break \"reliability across hundreds of interactions\": (1) *unreliable admission* — failed trajectories, accidental successes, and misleading observations enter memory because they merely *look* relevant (e.g., a web agent that learns \"edit the first row after filtering an admin table\" then edits the wrong row under a different sort order); and (2) *memory drift* — banks accumulate duplicate, stale, conflicting, over-generalized records that retrieval alone cannot repair (e.g., an old API tool-usage hint stays in the top-*k* pool and is re-injected for every superficially similar query) [normalized:2608.21867:text:33b45488d1a0]. The proposed method inverts the usual one-shot filter: verifier output becomes *persistent* metadata — multi-criteria score-token verification converted into reward, confidence, label, and uncertainty descriptors attached at admission and reused across retrieval, conflict resolution, summarization, and archival [normalized:2608.21867:text:ad9e98a54193]. The system figure situates this against prior experience-memory systems (Synapse, AWM, ReasoningBank), showing descriptors governing admission, lifecycle updates, quality-aware retrieval, and failure-guard injection [normalized:2608.21867:figure:d33d6a0fe430].\n\n**Retrieval — experience-amortized reranking.** The retriever paper (\"The Retriever Should Remember: Experience-Amortized Reranking for Long-Term Agent Memory,\" Feng, Ding, Fan at CUHK–Shenzhen) [normalized:2608.22767:text:444210d966f0][normalized:2608.22767:text:519cdbc91499] points to a retrieval-side method: rather than only storing experience, the *retriever itself* should remember — reranking decisions amortized over accumulated experience to improve long-term agent memory. This is the counterpart to MemGuard's \"quality-aware retrieval\" descriptor reuse.\n\n**Attack — memory injection.** InjecMEM (\"Memory Injection Attack on LLM Agent Memory Systems,\" Tian, Zhang, Sha, et al., SJTU + Ant Group) [normalized:2608.23471:text:2ae2c919e10c][normalized:2608.23471:text:519cdbc91499][normalized:2608.23471:text:110c9a80ca2f] names a new attack surface: injecting content into the agent's memory store itself, so poisoned records are later retrieved and trusted. This complements MemGuard's failure-guard injection by probing whether lifecycle governance is actually attack-resilient.\n\n### Evaluation gaps\n\n- **Governance (MemGuard):** its own evaluation is task-success oriented — Terminal-Bench 2.0, SWE-Bench Verified, WebArena, Mind2Web × four backbones, five seeds, reporting success rate and steps (best in all 16 settings; up to +7.9 pts on WebArena vs. ReasoningBank) [normalized:2608.21867:text:ad9e98a54193]. What is *not* reported in the evidence I read: adversarial/poisoning robustness (can an attacker forge the reward/confidence/uncertainty descriptors?), long-horizon drift measurement (how reliability decays beyond the tested horizons), and memory-specific metrics (duplicate/staleness/conflict reduction rates) rather than only downstream task success.\n- **Retrieval (Retriever Should Remember):** the sampled blocks cover only title/authors, so no evaluation details are visible. Structurally, the open question is whether retrieval is measured with memory-native metrics (recall@k, hit rate, reuse rate, drift over time) or only via end-task success — and whether reranking is evaluated under *poisoned* memory, which neither paper's visible text addresses.\n- **Attack (InjecMEM):** likewise, only the title/author pages were sampled, so the attack's evaluation protocol (injection success rate, stealth, persistence across admission/summarization/archival lifecycle operations, and whether it targets MemGuard-style governance) is unverified from the evidence read.\n\n### Caveat\n\nThis is an exploration draft with asymmetric evidence: MemGuard's abstract, introduction, and failure-mode analysis were fully readable [normalized:2608.21867:text:ad9e98a54193][normalized:2608.21867:text:1943df5dfe68][normalized:2608.21867:text:33b45488d1a0][normalized:2608.21867:figure:d33d6a0fe430], whereas for the retriever and InjecMEM papers only title/author blocks were available in the sample [normalized:2608.22767:text:444210d966f0][normalized:2608.23471:text:2ae2c919e10c], so their method details and evaluation claims are inferred from titles and framing, not directly read. The resulting cross-pillar gap summary — no shared benchmarks, no standardized memory-health metrics, no adversarial evaluation of governance metadata, and no longitudinal drift benchmarks — is best treated as a hypothesis to confirm against the full texts.",
+      "actual_block_ids": [
+        "normalized:2608.21867:figure:d33d6a0fe430",
+        "normalized:2608.21867:text:1943df5dfe68",
+        "normalized:2608.21867:text:33b45488d1a0",
+        "normalized:2608.21867:text:a2f7b3c37549",
+        "normalized:2608.21867:text:ad9e98a54193",
+        "normalized:2608.22767:text:06ffbb678143",
+        "normalized:2608.22767:text:110c9a80ca2f",
+        "normalized:2608.22767:text:444210d966f0",
+        "normalized:2608.22767:text:519cdbc91499",
+        "normalized:2608.22767:text:5c1aa92177c6",
+        "normalized:2608.23471:text:110c9a80ca2f",
+        "normalized:2608.23471:text:2ae2c919e10c",
+        "normalized:2608.23471:text:3cf0ba397e0e",
+        "normalized:2608.23471:text:519cdbc91499",
+        "normalized:2608.23471:text:b73520457f3c"
+      ],
+      "resolved_citation_ids": [
+        "normalized:2608.21867:figure:d33d6a0fe430",
+        "normalized:2608.21867:text:1943df5dfe68",
+        "normalized:2608.21867:text:33b45488d1a0",
+        "normalized:2608.21867:text:ad9e98a54193",
+        "normalized:2608.22767:text:444210d966f0",
+        "normalized:2608.22767:text:519cdbc91499",
+        "normalized:2608.23471:text:110c9a80ca2f",
+        "normalized:2608.23471:text:2ae2c919e10c",
+        "normalized:2608.23471:text:519cdbc91499"
+      ],
+      "unresolved_citation_ids": [],
+      "citation_closed_loop": true
+    }
+  ],
+  "passed": true
+}

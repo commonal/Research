@@ -1,0 +1,25 @@
+interests:
+- topic: LLM-based recommendation and debiasing
+  keywords:
+  - LLM recommendation
+  - recommender system bias
+  - MNAR
+  note: 主线方向：MNAR 去偏、LLM 插补交互数据
+- topic: Agent long-term memory
+  keywords:
+  - agent memory
+  - memory consolidation
+  - long-term memory LLM agent
+  note: 关注 memory 写入/巩固/遗忘机制
+- topic: User modeling for agents
+  keywords:
+  - user modeling
+  - personalized agent
+  note: 个性化与用户建模交叉
+- topic: Agent Memory
+  keywords:
+  - LLM agent memory
+  note: 由前端研究方向自动同步
+dislikes:
+- pure vision-language model pretraining
+- hardware/fPGA acceleration

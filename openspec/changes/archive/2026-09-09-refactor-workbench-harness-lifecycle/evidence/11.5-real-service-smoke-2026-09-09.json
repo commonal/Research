@@ -1,0 +1,63 @@
+{
+  "schema_version": "workbench-harness-reliability-smoke-v1",
+  "created_at": "2026-09-09T04:02:07.158501+00:00",
+  "status": "failed",
+  "real_model": true,
+  "real_research_tools": true,
+  "question_id": "q-single-source-verifier-signal-smoke",
+  "provider": "deepseek",
+  "model": "deepseek-v4-flash",
+  "limits": {
+    "model_rounds": 6,
+    "tool_calls": 10,
+    "block_reads": 14,
+    "wall_seconds": 120,
+    "input_tokens": 20000,
+    "output_tokens": 4000
+  },
+  "effective_tools": [
+    "search_sources",
+    "read_paper_metadata",
+    "read_managed_blocks",
+    "read_run_status",
+    "search_arxiv"
+  ],
+  "workspace_writes_allowed": false,
+  "deterministic_contracts_replaced": false,
+  "stop_reason": "budget_exhausted",
+  "event_count": 19,
+  "event_types": [
+    "run_started",
+    "tool_started",
+    "source_discovered",
+    "source_discovered",
+    "source_discovered",
+    "tool_completed",
+    "tool_started",
+    "tool_completed",
+    "tool_started",
+    "context_read",
+    "context_read",
+    "context_read",
+    "context_read",
+    "context_read",
+    "context_read",
+    "context_read",
+    "context_read",
+    "tool_completed",
+    "run_failed"
+  ],
+  "actual_block_ids": [
+    "normalized:2608.21867:text:1943df5dfe68",
+    "normalized:2608.21867:text:1e0751396759",
+    "normalized:2608.21867:text:33b45488d1a0",
+    "normalized:2608.21867:text:442e624f5ddd",
+    "normalized:2608.21867:text:44c3690bc3f5",
+    "normalized:2608.21867:text:a2f7b3c37549",
+    "normalized:2608.21867:text:ad9e98a54193",
+    "normalized:2608.21867:text:e96f23d96dc0"
+  ],
+  "resolved_citation_ids": [],
+  "unresolved_citation_ids": [],
+  "citation_closed_loop": false
+}

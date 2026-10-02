@@ -1,0 +1,82 @@
+{
+  "schema_version": "workbench-harness-v0-fixture-v1",
+  "fixture_id": "agent-memory-pilot-v0",
+  "frozen_at": "2026-08-31",
+  "harness": {
+    "name": "Deep Agents",
+    "package": "deepagents==0.7.11",
+    "profile": "research-pulse-readonly-v0",
+    "backend": "deepagents.backends.StateBackend",
+    "checkpointer": null,
+    "general_purpose_subagent": false,
+    "excluded_capabilities": ["ls", "read_file", "write_file", "edit_file", "delete", "glob", "grep", "execute", "task", "publish", "subagent"]
+  },
+  "model": {
+    "provider": "deepseek",
+    "model": "deepseek-v4-flash",
+    "profile_key": "openai:deepseek-v4-flash",
+    "temperature": 0
+  },
+  "allowed_tools": [
+    "search_sources",
+    "read_paper_metadata",
+    "read_managed_blocks",
+    "read_run_status"
+  ],
+  "budget": {
+    "model_rounds": 8,
+    "tool_calls": 16,
+    "block_reads": 24,
+    "wall_seconds": 300,
+    "input_tokens": 40000,
+    "output_tokens": 8000
+  },
+  "questions": [
+    {
+      "question_id": "q-memory-governance-vs-reranking",
+      "text": "How do persistent verifier-based memory governance and experience-amortized reranking address different long-term agent memory failures?",
+      "source_ids": ["2608.21867", "2608.22767"]
+    },
+    {
+      "question_id": "q-memory-injection-boundary",
+      "text": "Which assumptions of long-term agent memory governance are challenged by memory injection attacks, and what defenses remain unsupported by the supplied evidence?",
+      "source_ids": ["2608.21867", "2608.23471"]
+    },
+    {
+      "question_id": "q-memory-method-map",
+      "text": "What initial method map emerges for reliable long-term LLM-agent memory, and which evaluation gaps remain across governance, retrieval, and attack research?",
+      "source_ids": ["2608.21867", "2608.22767", "2608.23471"]
+    }
+  ],
+  "materials": [
+    {
+      "source_id": "2608.21867",
+      "title": "MemGuard: Persisting Verifier Signals for LLM-Agent Memory Governance",
+      "source_url": "https://arxiv.org/abs/2608.21867",
+      "blocks_path": "data/normalized/2608.21867/normalized/blocks.jsonl",
+      "sha256": "8bd494d82a7fa97e06838246232160d9ed9ef5414c61302c0ab0fd959f5269fb"
+    },
+    {
+      "source_id": "2608.22767",
+      "title": "The Retriever Should Remember: Experience-Amortized Reranking for Long-Term Agent Memory",
+      "source_url": "https://arxiv.org/abs/2608.22767",
+      "blocks_path": "data/normalized/2608.22767/normalized/blocks.jsonl",
+      "sha256": "3e5472f055c4495c0e38c39c4c0c312980a60a04bb6561186b29762c8ed44eed"
+    },
+    {
+      "source_id": "2608.23471",
+      "title": "InjecMEM: Memory Injection Attack on LLM Agent Memory Systems",
+      "source_url": "https://arxiv.org/abs/2608.23471",
+      "blocks_path": "data/normalized/2608.23471/normalized/blocks.jsonl",
+      "sha256": "8e2b9928bde19a5849d62fc23446d7491e2a1b351f9d15ae8ba21601c55bf28d"
+    }
+  ],
+  "run_protocol": {
+    "one_process_per_run": true,
+    "network_search": false,
+    "material_policy": "Only the frozen managed blocks listed above may be read.",
+    "result_label": "探索草稿/待验证",
+    "candidate_questions_optional": true,
+    "method_map_label": "当前证据范围内的初始地图"
+  }
+}

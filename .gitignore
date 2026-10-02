@@ -10,9 +10,20 @@ __pycache__/
 # Generated knowledge is intentionally kept local until its review workflow is defined.
 knowledge/generated/
 knowledge/review-drafts/
+# Produced reading artifacts, receipts and staging areas are outputs, not source:
+# rebuilding them needs the provider keys and the real papers.
+knowledge/papers/
+knowledge/receipts/
+knowledge/staging/
+knowledge/.topics/
 data/candidates/
 data/parse-receipts/
 data/transient/
+# Normalized paper IR, the local workbench store and scout output are all rebuilt
+# from source papers; data/workbench alone is ~90 MB of runtime state.
+data/normalized/
+data/workbench/
+data/scout/
 researchrag-postgres/
 
 # Heavy / throwaway work trees and build artifacts (keep source, ignore outputs)
@@ -33,6 +44,13 @@ tmp/
 evals/real-e2e/*.html
 evals/real-e2e/*/
 evals/baseline/runs/
+# Eval run artifacts: parsed paper material, downloaded source PDFs, page images
+# and per-run receipts. All of it is regenerated from the source papers.
+evals/mineru-traceable/
+evals/mineru-api/
+evals/paddleocr-vl/
+evals/real-e2e/
+evals/real_e2e/
 .prototype-deps/
 experiments/harness_selection_prototype/outputs/
 .dev/
