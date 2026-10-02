@@ -41,6 +41,8 @@ tmp/
 /.mineru-api-test-tmp/
 /.resume-readiness-tmp/
 .agents/
+# Session runtime data and clipboard attachments from the local agent tooling.
+.reasonix/
 evals/real-e2e/*.html
 evals/real-e2e/*/
 evals/baseline/runs/
