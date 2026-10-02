@@ -11,9 +11,14 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "katex": "^0.18.4",
+    "pdfjs-dist": "^5.7.284",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "react-markdown": "^10.1.0"
+    "react-markdown": "^10.1.0",
+    "rehype-katex": "^7.0.1",
+    "remark-gfm": "^4.0.1",
+    "remark-math": "^6.0.0"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^7.0.1",

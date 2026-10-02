@@ -154,6 +154,9 @@ describe("research topic UI", () => {
     });
     render(<App />);
 
+    fireEvent.click(await screen.findByRole("button", { name: /Evidence-aware paper/ }));
+
+    expect(screen.queryByRole("button", { name: "问知识库" })).toBeNull();
     expect(await screen.findByRole("list", { name: "证据边界" })).toBeTruthy();
     expect(screen.getByRole("status", { name: "分阶段精读：模型解读与证据主张已分离" })).toBeTruthy();
     expect(screen.getByText("表格")).toBeTruthy();
@@ -162,6 +165,7 @@ describe("research topic UI", () => {
     expect(screen.getByRole("list", { name: "逐节证据" })).toBeTruthy();
     expect(screen.getByText("实验与结果")).toBeTruthy();
     expect(screen.getByText(/不会被伪装成论文页码/)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "在知识库内提问" })).toBeNull();
   });
 
   it("labels schema-v2 details as the old evidence model", async () => {
@@ -191,6 +195,8 @@ describe("research topic UI", () => {
 
     render(<App />);
 
+    fireEvent.click(await screen.findByRole("button", { name: /Old evidence model/ }));
+
     expect(await screen.findByText("旧证据模型：该版本没有逐节来源映射")).toBeTruthy();
   });
 
@@ -198,8 +204,13 @@ describe("research topic UI", () => {
     vi.mocked(createResearchTopic).mockResolvedValue({ topic, run: run("queued") });
     render(<App />);
 
+    // Empty timeline shows the onboarding call-to-action and the topics-manage entry.
+    expect(await screen.findByText("先生成第一份论文精读")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "研究方向" }));
     expect(await screen.findByText("还没有研究方向")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "添加研究方向" }));
+    fireEvent.click(screen.getByRole("button", { name: "关闭研究方向" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "＋ 添加研究方向" }));
     fireEvent.change(screen.getByLabelText("方向名称"), { target: { value: "  " } });
     fireEvent.change(screen.getByLabelText("论文检索词"), { target: { value: "LLM agent memory" } });
     fireEvent.submit(screen.getByRole("form", { name: "新增研究方向" }));
@@ -209,7 +220,7 @@ describe("research topic UI", () => {
     fireEvent.change(screen.getByLabelText("方向名称"), { target: { value: "Agent 记忆" } });
     fireEvent.submit(screen.getByRole("form", { name: "新增研究方向" }));
 
-    expect(await screen.findByText("Agent 记忆")).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "研究方向" })).toBeTruthy();
     expect(createResearchTopic).toHaveBeenCalledWith("Agent 记忆", "LLM agent memory");
   });
 
@@ -266,6 +277,8 @@ describe("research topic UI", () => {
     });
     render(<App />);
 
+    fireEvent.click(await screen.findByRole("button", { name: /Reviewable paper/ }));
+
     expect(await screen.findByRole("region", { name: "待审核精读预览" })).toBeTruthy();
     expect(screen.getByText("不会进入 RAG")).toBeTruthy();
     expect(screen.getByText("missing_evidence_facet")).toBeTruthy();
@@ -280,6 +293,7 @@ describe("research topic UI", () => {
     const view = render(<App />);
     await act(async () => { await Promise.resolve(); await Promise.resolve(); });
 
+    fireEvent.click(screen.getByRole("button", { name: "研究方向" }));
     expect(screen.getByText("Agent 记忆")).toBeTruthy();
     await act(async () => {
       vi.advanceTimersByTime(2_000);
@@ -305,6 +319,7 @@ describe("research topic UI", () => {
     vi.mocked(fetchProductionRun).mockResolvedValue(run("running", { run_id: "run-existing" }));
     render(<App />);
 
+    fireEvent.click(await screen.findByRole("button", { name: "研究方向" }));
     expect(await screen.findByText("尚未配置 DeepSeek，配置后可重新抓取。")).toBeTruthy();
     expect(document.body.textContent).not.toContain("sk-secret");
     fireEvent.click(screen.getByRole("button", { name: "重新抓取" }));
@@ -323,6 +338,7 @@ describe("research topic UI", () => {
       .mockResolvedValueOnce({ ...topic, enabled: false, daily_limit: 2 });
     render(<App />);
 
+    fireEvent.click(await screen.findByRole("button", { name: "研究方向" }));
     expect(await screen.findByText(/下次自动更新/)).toBeTruthy();
     expect(screen.getAllByText("自动更新").length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole("button", { name: "暂停Agent 记忆自动更新" }));
@@ -338,6 +354,7 @@ describe("research topic UI", () => {
     vi.mocked(updateResearchTopic).mockRejectedValue(new Error("无法更新研究方向"));
     render(<App />);
 
+    fireEvent.click(await screen.findByRole("button", { name: "研究方向" }));
     fireEvent.click(await screen.findByRole("button", { name: "暂停Agent 记忆自动更新" }));
 
     expect(await screen.findByText("无法更新研究方向")).toBeTruthy();

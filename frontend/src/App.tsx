@@ -17,7 +17,7 @@ import {
   startChat,
   updateResearchTopic,
 } from "./api";
-import { MarkdownReader } from "./MarkdownReader";
+import { headingSlug, MarkdownReader } from "./MarkdownReader";
 import type {
   ChatResponse,
   EvidenceAnchor,
@@ -29,6 +29,10 @@ import type {
   SchedulerStatus,
   TopicWithLatestRun,
 } from "./types";
+import { WorkbenchApp } from "./workbench/WorkbenchApp";
+import { createHttpWorkbenchClient, WorkbenchApiError } from "./workbench/httpWorkbenchClient";
+import type { KnowledgeWorkbenchStatus } from "./workbench/types";
+import { ResearchUiPrototype } from "./ResearchUiPrototype";
 
 type Message = { role: "assistant" | "user"; text: string };
 type ReadingState = "loading" | "ready" | "empty" | "not_found" | "unavailable";
@@ -133,6 +137,16 @@ export default function App() {
   const [topicFormError, setTopicFormError] = useState<string | null>(null);
   const [topicSubmitting, setTopicSubmitting] = useState(false);
   const [watchedRunIds, setWatchedRunIds] = useState<string[]>([]);
+  const [timelineMode, setTimelineMode] = useState(true);
+  const [topicsPanelOpen, setTopicsPanelOpen] = useState(false);
+  const [appMode, setAppMode] = useState<"knowledge" | "workbench">("knowledge");
+  const [workbenchEntrySessionId, setWorkbenchEntrySessionId] = useState<string | null>(null);
+  const [workbenchEntryLoading, setWorkbenchEntryLoading] = useState(false);
+  const [workbenchEntryError, setWorkbenchEntryError] = useState<string | null>(null);
+  const [workbenchPaperStatus, setWorkbenchPaperStatus] = useState<KnowledgeWorkbenchStatus | null>(null);
+  const [workbenchPaperStatusLoading, setWorkbenchPaperStatusLoading] = useState(false);
+  const workbenchClient = useMemo(() => createHttpWorkbenchClient(), []);
+  const showResearchUiPrototype = import.meta.env.DEV && new URLSearchParams(window.location.search).get("prototype") === "research-ui";
 
   async function loadTimeline(showLoading = true) {
     if (showLoading) {
@@ -147,9 +161,10 @@ export default function App() {
         setReadingState("empty");
         return;
       }
-      setSelectedId((current) => records.some((item) => item.knowledge_id === current)
-        ? current
-        : records[0].knowledge_id);
+      // Stay in timeline view unless the user already opened a paper; we no
+      // longer auto-select the first note on load.
+      setSelectedId(null);
+      setTimelineMode(true);
       setDetailRevision((current) => current + 1);
     } catch {
       setItems([]);
@@ -222,6 +237,7 @@ export default function App() {
     setReviewLoading(true);
     setReviewDraft(null);
     setReviewError(null);
+    setWorkbenchEntryError(null);
     fetchKnowledgeDetail(selectedId, controller.signal)
       .then((record) => {
         if (!controller.signal.aborted) {
@@ -250,10 +266,79 @@ export default function App() {
     return () => controller.abort();
   }, [selectedId, detailRevision]);
 
+  useEffect(() => {
+    const knowledgeId = detail?.knowledge_id;
+    const readStatus = workbenchClient.getKnowledgePaperStatus;
+    if (!knowledgeId || !readStatus) {
+      setWorkbenchPaperStatus(null);
+      setWorkbenchPaperStatusLoading(false);
+      return;
+    }
+    const controller = new AbortController();
+    setWorkbenchPaperStatus(null);
+    setWorkbenchPaperStatusLoading(true);
+    void readStatus(knowledgeId)
+      .then((status) => {
+        if (!controller.signal.aborted) setWorkbenchPaperStatus(status);
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setWorkbenchPaperStatus(null);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setWorkbenchPaperStatusLoading(false);
+      });
+    return () => controller.abort();
+  }, [detail?.knowledge_id, workbenchClient]);
+
   const selected = useMemo(
     () => items.find((item) => item.knowledge_id === selectedId) ?? null,
     [items, selectedId],
   );
+
+  function openPaper(id: string) {
+    setSelectedId(id);
+    setTimelineMode(false);
+  }
+
+  async function openCurrentNoteInWorkbench() {
+    if (!detail || workbenchEntryLoading) return;
+    const shouldImport = workbenchPaperStatus?.status === "not_registered"
+      || workbenchPaperStatus?.status === "preparing"
+      || workbenchPaperStatus?.status === "failed";
+    const open = shouldImport
+      ? workbenchClient.importKnowledgeSession
+      : workbenchClient.createKnowledgeSession;
+    if (!open) return;
+    if (workbenchPaperStatus?.status === "unavailable") {
+      setWorkbenchEntryError("这份笔记没有可下载的论文来源，暂时无法进入工作台。");
+      return;
+    }
+    setWorkbenchEntryLoading(true);
+    setWorkbenchEntryError(null);
+    try {
+      const session = await open(detail.knowledge_id);
+      setWorkbenchEntrySessionId(session.session_id);
+      setChatOpen(false);
+      setScopeCurrentPaper(false);
+      setAppMode("workbench");
+    } catch (error) {
+      if (error instanceof WorkbenchApiError && error.code === "paper_not_registered") {
+        setWorkbenchPaperStatus({
+          knowledge_id: detail.knowledge_id,
+          status: "not_registered",
+          can_import: Boolean(workbenchClient.importKnowledgeSession),
+          paper_id: null,
+          title: detail.title,
+          source_url: detail.source_urls[0] ?? null,
+        });
+        setWorkbenchEntryError("这份笔记还没有进入工作台，可以点击“导入论文并进入工作台”。");
+      } else {
+        setWorkbenchEntryError(error instanceof Error ? error.message : "无法打开论文工作台");
+      }
+    } finally {
+      setWorkbenchEntryLoading(false);
+    }
+  }
 
   async function submitQuestion(event: FormEvent) {
     event.preventDefault();
@@ -384,119 +469,172 @@ export default function App() {
     }
   }
 
+  if (showResearchUiPrototype) return <ResearchUiPrototype />;
+
   return (
     <main className="app-shell">
-      <header className="topbar">
+      <header className={`topbar ${appMode === "workbench" ? "topbar-workbench" : ""}`}>
         <a className="brand" href="#top" aria-label="Research Pulse 首页">
           <span className="brand-mark">R</span>
           <span>Research Pulse</span>
         </a>
         <div className="topbar-actions">
-          <span className="sync-status"><i /> {readingState === "ready" ? "知识库已同步" : "本地知识库"}</span>
-          <button className="primary-button" onClick={() => { setScopeCurrentPaper(false); setChatOpen(true); }}>
-            问知识库 <span>↗</span>
+          {appMode === "workbench" ? <span className="workbench-topbar-caption">研究工作台</span> : <span className="sync-status"><i /> {readingState === "ready" ? "论文笔记已同步" : "本地论文笔记"}</span>}
+          <button
+            className="workspace-switch"
+            aria-pressed={appMode === "workbench"}
+            onClick={() => setAppMode(appMode === "workbench" ? "knowledge" : "workbench")}
+          >
+            {appMode === "workbench" ? "论文笔记" : "工作台"}
           </button>
         </div>
       </header>
 
-      <section className="workspace" id="top">
-        <aside className="library-panel">
-          <div className="panel-label">资料架</div>
-          <button className="new-topic" aria-label="添加研究方向" onClick={() => { setTopicFormError(null); setTopicModalOpen(true); }}>＋ 添加研究方向</button>
-          <section className="topic-section" aria-label="研究方向列表">
-            <p className="nav-caption">关注方向</p>
-            <p className="scheduler-summary">
-              {schedulerLoading
-                ? "正在读取自动更新时间…"
-                : schedulerStatus?.enabled
-                  ? schedulerStatus.next_run_at
-                    ? `下次自动更新：${formatDateTime(schedulerStatus.next_run_at)}`
-                    : `每日 ${schedulerStatus.daily_time} 自动更新`
-                  : schedulerStatus
-                    ? "自动更新未启用"
-                    : "自动更新状态暂不可用"}
-            </p>
-            {topicsLoading && <p className="topic-empty">正在读取方向…</p>}
-            {!topicsLoading && !topics.length && <p className="topic-empty">还没有研究方向</p>}
-            {topics.map((record) => {
-              const latest = record.latest_run;
-              const error = runErrorLabel(latest?.error_code ?? null);
-              return (
-                <article className="topic-card" key={record.topic.topic_id}>
-                  <strong>{record.topic.name}</strong>
-                  {latest && <span className={`run-status ${latest.status}`}>{runStatusLabel(latest.status)}</span>}
-                  <p>{record.topic.query}</p>
-                  <div className="topic-subscription-row">
-                    <span className={`topic-auto-state ${record.topic.enabled ? "enabled" : "paused"}`}>
-                      {record.topic.enabled ? "自动更新" : "已暂停"}
-                    </span>
-                    <label>
-                      每日
-                      <select
-                        aria-label={`${record.topic.name}每日篇数`}
-                        value={record.topic.daily_limit}
-                        onChange={(event) => void updateTopic(record.topic.topic_id, { daily_limit: Number(event.target.value) })}
-                      >
-                        {[1, 2, 3].map((value) => <option value={value} key={value}>{value} 篇</option>)}
-                      </select>
-                    </label>
-                  </div>
-                  {record.topic.last_successful_discovery_at && (
-                    <small>上次发现：{formatDateTime(record.topic.last_successful_discovery_at)}</small>
-                  )}
-                  {latest && (
-                    <small>{runTriggerLabel(latest.trigger)} · {latest.published_count} 篇新精读 · {latest.failed_count} 篇未发布</small>
-                  )}
-                  {error && <p className="topic-error">{error}</p>}
-                  <button
-                    className="topic-toggle"
-                    aria-label={`${record.topic.enabled ? "暂停" : "恢复"}${record.topic.name}自动更新`}
-                    onClick={() => void updateTopic(record.topic.topic_id, { enabled: !record.topic.enabled })}
-                  >
-                    {record.topic.enabled ? "暂停自动更新" : "恢复自动更新"}
-                  </button>
-                  {latest?.status && !isActiveRun(latest) && (
-                    <button className="retry-topic" onClick={() => void retryTopic(record.topic.topic_id)}>重新抓取</button>
-                  )}
-                </article>
-              );
-            })}
-            {topicsError && <p className="topic-error">{topicsError}</p>}
-          </section>
-          <nav>
-            <p className="nav-caption">最近精读</p>
-            {items.map((item) => (
-              <button
-                className={`paper-nav-item ${item.knowledge_id === selectedId ? "active" : ""}`}
-                key={item.knowledge_id}
-                onClick={() => setSelectedId(item.knowledge_id)}
+      <section className={`workspace ${appMode === "workbench" ? "workbench-workspace" : ""}`} id="top">
+        {appMode === "workbench" ? (
+          <WorkbenchApp
+            client={workbenchClient}
+            initialSessionId={workbenchEntrySessionId}
+            onOpenKnowledge={(knowledgeId) => { setAppMode("knowledge"); openPaper(knowledgeId); }}
+          />
+        ) : timelineMode ? (
+          <section className="timeline-panel" aria-label="论文时间线">
+            <div className="timeline-toolbar">
+              <div className="timeline-toolbar-left">
+                <button className="primary-button" onClick={() => { setTopicFormError(null); setTopicModalOpen(true); }}>＋ 添加研究方向</button>
+                <button className="topics-manage-button" onClick={() => setTopicsPanelOpen(true)}>研究方向</button>
+              </div>
+              {items.length > 0 && <span className="timeline-count">{items.length} 篇笔记</span>}
+            </div>
+            {readingState === "empty" && (
+              <ReadingNotice
+                badge="空库引导 · 非真实知识"
+                title="先生成第一份论文精读"
+                text="当前还没有已发布论文笔记。点击“添加研究方向”，系统会抓取少量论文；只有通过质量门禁的 Markdown 才会出现在这里。"
               >
-                <span className="nav-date">{formatDate(item.knowledge_version)}</span>
-                <span>{item.title}</span>
-              </button>
-            ))}
-          </nav>
-          <div className="library-footnote">仅展示通过校验的已发布知识资产</div>
-        </aside>
+                <button className="secondary-button" onClick={() => setTopicModalOpen(true)}>添加第一个研究方向</button>
+              </ReadingNotice>
+            )}
+            {readingState === "unavailable" && (
+              <ReadingNotice title="阅读服务暂不可用" text="无法连接论文笔记服务。页面不会用演示正文代替真实内容。">
+                <button className="secondary-button" onClick={() => void loadTimeline()}>重试连接</button>
+              </ReadingNotice>
+            )}
+            <div className="timeline-feed">
+              {items.map((item, index) => (
+                <button
+                  className="timeline-card"
+                  key={item.knowledge_id}
+                  onClick={() => openPaper(item.knowledge_id)}
+                >
+                  {index === 0 && <span className="timeline-newest">最新</span>}
+                  <span className="timeline-date">{formatDate(item.knowledge_version)}</span>
+                  <strong className="timeline-title">{item.title}</strong>
+                  <span className="timeline-meta">
+                    {levelLabel(item.evidence_level)}{item.domain ? ` · ${item.domain.replaceAll("_", " ")}` : ""}
+                  </span>
+                  {item.source_url && (
+                    <span className="timeline-source">来源：{item.source_url.replace("https://arxiv.org/abs/", "arXiv ")}</span>
+                  )}
+                </button>
+              ))}
+            </div>
+            <p className="library-footnote">仅展示通过校验的已发布论文笔记 · 点击任意笔记查看正文</p>
 
+            {topicsPanelOpen && (
+              <div className="topic-backdrop" onMouseDown={() => setTopicsPanelOpen(false)}>
+                <section className="topics-manage-panel" aria-label="研究方向管理" onMouseDown={(event) => event.stopPropagation()}>
+                  <header>
+                    <div><span className="panel-label">研究方向</span><h2>每日追踪设置</h2></div>
+                    <button type="button" className="icon-button" onClick={() => setTopicsPanelOpen(false)} aria-label="关闭研究方向">×</button>
+                  </header>
+                  <p className="topics-manage-copy">这些方向决定 scout 每天挑选论文的兴趣画像；暂停后不再参与每日自动更新。</p>
+                  <p className="scheduler-summary">
+                    {schedulerLoading
+                      ? "正在读取自动更新时间…"
+                      : schedulerStatus?.enabled
+                        ? schedulerStatus.next_run_at
+                          ? `下次自动更新：${formatDateTime(schedulerStatus.next_run_at)}`
+                          : `每日 ${schedulerStatus.daily_time} 自动更新`
+                        : schedulerStatus
+                          ? "自动更新未启用"
+                          : "自动更新状态暂不可用"}
+                  </p>
+                  <button className="new-topic" onClick={() => { setTopicsPanelOpen(false); setTopicFormError(null); setTopicModalOpen(true); }}>＋ 添加研究方向</button>
+                  {topicsLoading && <p className="topic-empty">正在读取方向…</p>}
+                  {!topicsLoading && !topics.length && <p className="topic-empty">还没有研究方向</p>}
+                  {topics.map((record) => {
+                    const latest = record.latest_run;
+                    const error = runErrorLabel(latest?.error_code ?? null);
+                    return (
+                      <article className="topic-card" key={record.topic.topic_id}>
+                        <strong>{record.topic.name}</strong>
+                        {latest && <span className={`run-status ${latest.status}`}>{runStatusLabel(latest.status)}</span>}
+                        <p>{record.topic.query}</p>
+                        <div className="topic-subscription-row">
+                          <span className={`topic-auto-state ${record.topic.enabled ? "enabled" : "paused"}`}>
+                            {record.topic.enabled ? "自动更新" : "已暂停"}
+                          </span>
+                          <label>
+                            每日
+                            <select
+                              aria-label={`${record.topic.name}每日篇数`}
+                              value={record.topic.daily_limit}
+                              onChange={(event) => void updateTopic(record.topic.topic_id, { daily_limit: Number(event.target.value) })}
+                            >
+                              {[1, 2, 3].map((value) => <option value={value} key={value}>{value} 篇</option>)}
+                            </select>
+                          </label>
+                        </div>
+                        {record.topic.last_successful_discovery_at && (
+                          <small>上次发现：{formatDateTime(record.topic.last_successful_discovery_at)}</small>
+                        )}
+                        {latest && (
+                          <small>{runTriggerLabel(latest.trigger)} · {latest.published_count} 篇新精读 · {latest.failed_count} 篇未发布</small>
+                        )}
+                        {error && <p className="topic-error">{error}</p>}
+                        <button
+                          className="topic-toggle"
+                          aria-label={`${record.topic.enabled ? "暂停" : "恢复"}${record.topic.name}自动更新`}
+                          onClick={() => void updateTopic(record.topic.topic_id, { enabled: !record.topic.enabled })}
+                        >
+                          {record.topic.enabled ? "暂停自动更新" : "恢复自动更新"}
+                        </button>
+                        {latest?.status && !isActiveRun(latest) && (
+                          <button className="retry-topic" onClick={() => void retryTopic(record.topic.topic_id)}>重新抓取</button>
+                        )}
+                      </article>
+                    );
+                  })}
+                  {topicsError && <p className="topic-error">{topicsError}</p>}
+                </section>
+              </div>
+            )}
+          </section>
+        ) : (
+          <div className="reader-layout">
+        <TableOfContents headings={detail ? extractHeadings(detail.markdown) : []} />
         <article className="reader-panel" aria-live="polite">
-          {readingState === "loading" && <ReadingNotice title="正在读取知识" text="正在校验当前版本与正文哈希…" />}
+          <div className="reader-back">
+            <button className="secondary-button" onClick={() => setTimelineMode(true)}>← 返回时间线</button>
+          </div>
+          {readingState === "loading" && <ReadingNotice title="正在读取论文笔记" text="正在校验当前版本与正文哈希…" />}
           {readingState === "empty" && (
             <ReadingNotice
               badge="空库引导 · 非真实知识"
               title="先生成第一份论文精读"
-              text="当前知识仓还没有已发布资产。点击左侧“添加研究方向”，系统会抓取少量论文；只有通过质量门禁的 Markdown 才会出现在这里。"
+              text="当前还没有已发布论文笔记。点击左侧“添加研究方向”，系统会抓取少量论文；只有通过质量门禁的 Markdown 才会出现在这里。"
             >
               <button className="secondary-button" onClick={() => setTopicModalOpen(true)}>添加第一个研究方向</button>
             </ReadingNotice>
           )}
           {readingState === "not_found" && (
-            <ReadingNotice title="这份知识当前不可用" text="文件可能已更新、尚未发布或未通过完整性校验。请选择其他条目或刷新时间线。">
-              <button className="secondary-button" onClick={() => void loadTimeline()}>刷新知识库</button>
+            <ReadingNotice title="这份论文笔记当前不可用" text="文件可能已更新、尚未发布或未通过完整性校验。请选择其他条目或刷新时间线。">
+              <button className="secondary-button" onClick={() => void loadTimeline()}>刷新论文笔记</button>
             </ReadingNotice>
           )}
           {readingState === "unavailable" && (
-            <ReadingNotice title="阅读服务暂不可用" text="无法连接知识详情 API。页面不会用演示正文代替真实内容。">
+            <ReadingNotice title="阅读服务暂不可用" text="无法连接论文笔记服务。页面不会用演示正文代替真实内容。">
               <button className="secondary-button" onClick={() => void loadTimeline()}>重试连接</button>
             </ReadingNotice>
           )}
@@ -566,7 +704,7 @@ export default function App() {
         </article>
 
         <aside className="detail-panel">
-          <span className="detail-label">当前知识资产</span>
+          <span className="detail-label">当前论文笔记</span>
           {readingState === "ready" && detail && selected ? (
             <>
               <dl>
@@ -612,15 +750,42 @@ export default function App() {
                 <p className="detail-hint">此版本没有可持久化的来源锚点；正文可阅读，但不会作为事实型 RAG 证据。</p>
               )}
               <p className="detail-hint">页码仅在解析器实际提供时显示；知识块 ID 不会被伪装成论文页码。</p>
-              <button className="paper-question" onClick={() => { setScopeCurrentPaper(true); setChatOpen(true); }}>
-                问这篇论文
-              </button>
-              <p className="detail-hint">该入口会将检索范围限制在当前知识 ID。</p>
+              <section className="workbench-note-entry" aria-label="论文工作台入口">
+                <div className="workbench-note-entry-status">
+                  <span>工作台状态</span>
+                  {workbenchPaperStatusLoading && <strong>正在检查…</strong>}
+                  {!workbenchPaperStatusLoading && workbenchPaperStatus?.status === "available" && <strong className="is-ready">已准备好</strong>}
+                  {!workbenchPaperStatusLoading && workbenchPaperStatus?.status === "preparing" && <strong>正在准备论文</strong>}
+                  {!workbenchPaperStatusLoading && workbenchPaperStatus?.status === "failed" && <strong className="is-failed">上次导入失败</strong>}
+                  {!workbenchPaperStatusLoading && workbenchPaperStatus?.status === "not_registered" && <strong>仅笔记可读</strong>}
+                  {!workbenchPaperStatusLoading && workbenchPaperStatus?.status === "unavailable" && <strong>没有可下载来源</strong>}
+                  {!workbenchPaperStatusLoading && !workbenchPaperStatus && <strong>状态暂不可用</strong>}
+                </div>
+                <div className="paper-actions">
+                  <button
+                    className="paper-question"
+                    disabled={workbenchEntryLoading || workbenchPaperStatusLoading || workbenchPaperStatus?.status === "unavailable"}
+                    onClick={() => void openCurrentNoteInWorkbench()}
+                  >
+                    {workbenchEntryLoading
+                      ? (workbenchPaperStatus?.status === "not_registered" || workbenchPaperStatus?.status === "failed" ? "正在导入论文…" : "正在打开论文工作台…")
+                      : workbenchPaperStatus?.status === "not_registered" || workbenchPaperStatus?.status === "failed"
+                        ? "导入论文并进入工作台"
+                        : workbenchPaperStatus?.status === "preparing"
+                          ? "打开工作台查看准备进度"
+                          : "进入工作台研究这篇论文"}
+                  </button>
+                </div>
+                {workbenchEntryError && <p className="form-error" role="alert">{workbenchEntryError}</p>}
+                <p className="detail-hint">只有完成论文登记后，工作台才会提供 PDF 阅读、精确选区和论文问答；导入不会改变当前笔记。</p>
+              </section>
             </>
           ) : (
             <p className="detail-hint">选择并成功加载一份真实知识后，这里会显示版本和来源。</p>
           )}
         </aside>
+          </div>
+        )}
       </section>
 
       {chatOpen && (
@@ -667,6 +832,42 @@ export default function App() {
         </div>
       )}
     </main>
+  );
+}
+
+/** Extract markdown ATX headings (## / ### / ####) as a TOC. */
+type TocEntry = { id: string; text: string; depth: number };
+function extractHeadings(markdown: string): TocEntry[] {
+  const out: TocEntry[] = [];
+  const re = /^(#{2,4})\s+(.+?)\s*$/gm;
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(markdown)) !== null) {
+    const text = match[2].replace(/[*_`]/g, "").trim();
+    if (!text) continue;
+    out.push({ id: headingSlug(text), text, depth: match[1].length });
+  }
+  return out;
+}
+
+function TableOfContents({ headings }: { headings: TocEntry[] }) {
+  if (!headings.length) return null;
+  return (
+    <nav className="toc-panel" aria-label="本篇目录">
+      <span className="toc-label">本篇目录</span>
+      <ul>
+        {headings.map((h, index) => (
+          <li key={`${h.id}-${index}`} className={`toc-depth-${Math.min(h.depth, 4) - 2}`}>
+            <a href={`#${h.id}`} onClick={(e) => {
+              const target = document.getElementById(h.id);
+              if (target) {
+                e.preventDefault();
+                target.scrollIntoView({ behavior: "smooth", block: "start" });
+              }
+            }}>{h.text}</a>
+          </li>
+        ))}
+      </ul>
+    </nav>
   );
 }
 
