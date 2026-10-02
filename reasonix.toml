@@ -1,0 +1,2 @@
+[permissions]
+allow = ["Bash=.\\.venv\\Scripts\\python.exe -m pytest --collect-only -q 2>&1 | Select-Object -Last 15", "Bash=Get-ChildItem openspec -Recurse -File | Select-Object FullName; Write-Output \"---docs---\"; Get-ChildItem docs -Recurse -File | Select-Object FullName"]

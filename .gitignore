@@ -1,6 +1,8 @@
 # Runtime data and secrets
 anythingllm-storage/
 .env
+.env.local
+.env.*.local
 .venv/
 __pycache__/
 *.py[cod]
@@ -17,6 +19,21 @@ researchrag-postgres/
 node_modules/
 frontend/dist/
 tmp/
+# Root-level scratch directories created by tempfile, pytest, Vitest, and
+# local Codex validation runs. Keep them out of the project tree/status.
+/tmp*/
+/.tmp*/
+/.test-temp-*/
+/.pytest-temp/
+/.codex-local-temp-note*/
+/.codex-test-tmp/
+/.mineru-api-test-tmp/
+/.resume-readiness-tmp/
 .agents/
 evals/real-e2e/*.html
 evals/real-e2e/*/
+evals/baseline/runs/
+.prototype-deps/
+experiments/harness_selection_prototype/outputs/
+.dev/
+.resume-readiness-tmp/

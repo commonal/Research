@@ -1,0 +1,3 @@
+# V0 experiment only. Keep this exact until task 5.7 records the validation decision.
+deepagents==0.7.11
+langchain-openai==1.6.0
